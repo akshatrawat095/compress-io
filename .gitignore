@@ -137,3 +137,7 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+# Rust / Tauri (ADD THIS)
+src-tauri/target
+target
+**/*.rs.bk
