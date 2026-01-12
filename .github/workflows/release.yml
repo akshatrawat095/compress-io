@@ -35,7 +35,15 @@ jobs:
 
       - name: Install frontend dependencies
         run: npm install
-
+      - name: Install FFmpeg
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            choco install ffmpeg
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            brew install ffmpeg
+          else
+            sudo apt-get update && sudo apt-get install -y ffmpeg
+          fi
       - name: Build and Sign the App
         uses: tauri-apps/tauri-action@v0
         env:
