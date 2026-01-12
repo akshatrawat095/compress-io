@@ -19,6 +19,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # --- SAFETY CHECK: Verifies your token is readable ---
+      - name: Verify Token Exists
+        env:
+          MY_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          if [ -z "$MY_TOKEN" ]; then
+            echo "::error:: CRITICAL FAILURE: The secret RELEASE_TOKEN is EMPTY."
+            echo "::error:: Make sure it is in 'Repository secrets', NOT 'Environment secrets'."
+            exit 1
+          else
+            echo "SUCCESS: Token found! (Length: ${#MY_TOKEN})"
+          fi
+      # -----------------------------------------------------
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -54,7 +68,7 @@ jobs:
       - name: Build and Sign the App
         uses: tauri-apps/tauri-action@v0
         env:
-          # CRITICAL CHANGE: We now use the powerful RELEASE_TOKEN instead of GITHUB_TOKEN
+          # This forces the action to use your Personal Token
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
