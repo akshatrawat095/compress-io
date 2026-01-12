@@ -1,0 +1,218 @@
+/* Import Premium Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  --font-head: 'Outfit', sans-serif;
+  --font-body: 'Plus Jakarta Sans', sans-serif;
+  
+  --text-dark: #1e293b;
+  --text-light: #64748b;
+  
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.9);
+  
+  --primary-gradient: linear-gradient(135deg, #8b5cf6, #3b82f6);
+  --stop-gradient: linear-gradient(135deg, #f43f5e, #e11d48);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  height: 100vh;
+  overflow: hidden;
+  background: #f8fafc;
+  color: var(--text-dark);
+}
+
+/* --- BACKGROUND ANIMATION --- */
+.pastel-wrapper {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.gradient-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.5;
+  z-index: 0;
+  animation: float 20s infinite ease-in-out;
+}
+
+.blob-1 { width: 500px; height: 500px; background: #c4b5fd; top: -100px; left: -100px; }
+.blob-2 { width: 400px; height: 400px; background: #93c5fd; bottom: -50px; right: -50px; animation-delay: -5s; }
+.blob-3 { width: 300px; height: 300px; background: #fcd34d; top: 40%; left: 40%; opacity: 0.3; animation-duration: 25s; }
+
+@keyframes float {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, -30px) scale(1.1); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
+/* --- GLASS CARD --- */
+.glass-panel {
+  width: 420px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1px solid var(--glass-border);
+  border-radius: 32px;
+  padding: 40px;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* --- HEADER --- */
+.header-soft { display: flex; justify-content: space-between; align-items: center; }
+.logo-area { display: flex; align-items: center; gap: 12px; }
+.logo-icon { font-size: 24px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }
+
+h1 { 
+  font-family: var(--font-head);
+  font-size: 24px; font-weight: 800; color: #0f172a; margin: 0; letter-spacing: -0.03em;
+}
+
+.status-bubble {
+  font-family: var(--font-body);
+  font-size: 11px; font-weight: 600; color: var(--text-light);
+  background: rgba(255,255,255,0.6); padding: 6px 12px; border-radius: 100px;
+  border: 1px solid rgba(255,255,255,0.8);
+  display: flex; align-items: center; gap: 8px;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.status-dot { width: 6px; height: 6px; background: #cbd5e1; border-radius: 50%; }
+.status-dot.pulsing { background: #10b981; animation: pulse 1.5s infinite; }
+
+/* --- UPLOAD ZONE --- */
+.upload-soft {
+  background: rgba(255,255,255,0.5);
+  border: 2px dashed #cbd5e1;
+  border-radius: 20px;
+  height: 130px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.upload-soft:hover { border-color: #8b5cf6; background: rgba(255,255,255,0.8); }
+
+/* Drag State */
+.upload-soft.dragging {
+  border-color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.1);
+  transform: scale(1.02);
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
+}
+.upload-soft.dragging .icon-soft { transform: scale(1.2); color: #8b5cf6; }
+
+.icon-soft { font-size: 32px; color: #94a3b8; margin-bottom: 8px; font-weight: 300; transition: 0.3s; }
+.upload-soft p { font-family: var(--font-head); font-size: 15px; font-weight: 600; color: #64748b; margin: 0; }
+
+/* --- FILE CARD (FIXED FOR LONG NAMES) --- */
+.file-card-soft {
+  background: white; 
+  border-radius: 16px; 
+  padding: 16px;
+  display: flex; 
+  align-items: center; 
+  gap: 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+  border: 1px solid rgba(0,0,0,0.02);
+  width: 100%;             /* Ensure full width */
+  box-sizing: border-box;  /* Handle padding correctly */
+  overflow: hidden;        /* Prevent expansion beyond container */
+}
+
+.file-icon-soft {
+  font-family: var(--font-head); 
+  font-size: 10px; 
+  font-weight: 800; 
+  color: #7c3aed; /* Default Purple */
+  background: #f3e8ff; 
+  padding: 8px 10px; 
+  border-radius: 8px;
+  flex-shrink: 0; /* Prevent icon from squishing */
+}
+
+/* Styles for specific types */
+.file-icon-soft.doc-type { color: #ea580c; background: #ffedd5; } /* Orange for PDF */
+.file-icon-soft.unsupported { color: #ef4444; background: #fee2e2; } /* Red for Unsupported */
+
+.file-info {
+  flex: 1;                 /* Take available space */
+  min-width: 0;            /* CRITICAL: Allows shrinking for truncation */
+  display: flex;
+  flex-direction: column;
+}
+
+.file-name { 
+  font-family: var(--font-body); 
+  font-size: 14px; 
+  font-weight: 600; 
+  color: #334155; 
+  
+  /* Truncation Rules */
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+  display: block;
+}
+
+.btn-remove-soft {
+  border: none; 
+  background: transparent; 
+  color: #cbd5e1; 
+  cursor: pointer;
+  font-size: 18px; 
+  transition: 0.2s;
+  flex-shrink: 0; /* Prevent button squish */
+}
+.btn-remove-soft:hover { color: #ef4444; transform: scale(1.1); }
+
+/* --- SETTINGS AREA --- */
+.settings-soft {
+  background: rgba(255,255,255,0.6); padding: 20px; border-radius: 20px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+.input-block label { 
+  display: block; font-family: var(--font-head);
+  font-size: 11px; font-weight: 700; color: #64748b; 
+  margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;
+}
+.row { display: flex; gap: 12px; }
+
+input, .select-soft {
+  width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid #e2e8f0;
+  background: white; color: #334155; font-family: var(--font-body); font-size: 14px; font-weight: 500;
+  outline: none; transition: 0.2s;
+  box-sizing: border-box; /* Fix width issues */
+}
+
+input:focus, .select-soft:focus { 
+  border-color: #8b5cf6; 
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1); 
+}
+
+/* --- BUTTONS --- */
+.footer-area { margin-top: 8px; }
+.btn-gradient {
+  width: 100%; padding: 18px; border-radius: 16px; border: none;
+  font-family: var(--font-head); font-size: 15px; font-weight: 700; color: white; cursor: pointer;
+  letter-spacing: 0.02em; transition: 0.3s;
+}
+.btn-gradient.start { background: var(--primary-gradient); box-shadow: 0 8px 20px -4px rgba(139, 92, 246, 0.4); }
+.btn-gradient.start:hover { transform: translateY(-2px); box-shadow: 0 12px 25px -4px rgba(139, 92, 246, 0.5); }
+.btn-gradient.stop { background: var(--stop-gradient); box-shadow: 0 8px 20px -4px rgba(239, 68, 68, 0.4); }
+
+.logs-soft { margin-top: 16px; font-size: 11px; color: #94a3b8; text-align: center; font-family: monospace; }
+@keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
