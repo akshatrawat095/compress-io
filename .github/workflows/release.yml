@@ -19,8 +19,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # --- SAFETY CHECK: Verifies your token is readable ---
+      # --- FIXED DEBUG STEP (Works on Windows now) ---
       - name: Verify Token Exists
+        shell: bash
         env:
           MY_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
@@ -68,7 +69,6 @@ jobs:
       - name: Build and Sign the App
         uses: tauri-apps/tauri-action@v0
         env:
-          # This forces the action to use your Personal Token
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
