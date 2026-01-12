@@ -36,15 +36,19 @@ jobs:
       - name: Install frontend dependencies
         run: npm install
 
-      - name: Install FFmpeg
+      - name: Install and Map FFmpeg Sidecar
         shell: bash
         run: |
+          mkdir -p src-tauri/binaries
           if [ "$RUNNER_OS" == "Windows" ]; then
             choco install ffmpeg
+            cp /c/ProgramData/chocolatey/lib/ffmpeg/tools/ffmpeg/bin/ffmpeg.exe src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe
           elif [ "$RUNNER_OS" == "macOS" ]; then
             brew install ffmpeg
+            cp $(which ffmpeg) src-tauri/binaries/ffmpeg-aarch64-apple-darwin
           else
             sudo apt-get update && sudo apt-get install -y ffmpeg
+            cp $(which ffmpeg) src-tauri/binaries/ffmpeg-x86_64-unknown-linux-gnu
           fi
 
       - name: Build and Sign the App
