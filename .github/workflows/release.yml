@@ -55,9 +55,10 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # This pulls the text of the key you pasted into GitHub Secrets
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          # This must be exactly this name for Tauri v2, even for empty passwords
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+          # This pulls the actual password you just created in the terminal
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'App v__VERSION__'
