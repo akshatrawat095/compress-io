@@ -3,7 +3,6 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
 
 jobs:
   release:
@@ -13,68 +12,38 @@ jobs:
       fail-fast: false
       matrix:
         platform: [macos-latest, ubuntu-22.04, windows-latest]
-
+    
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # --- FIXED DEBUG STEP (Works on Windows now) ---
-      - name: Verify Token Exists
-        shell: bash
-        env:
-          MY_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+      - name: Install dependencies (ubuntu only)
+        if: matrix.platform == 'ubuntu-22.04'
         run: |
-          if [ -z "$MY_TOKEN" ]; then
-            echo "::error:: CRITICAL FAILURE: The secret RELEASE_TOKEN is EMPTY."
-            echo "::error:: Make sure it is in 'Repository secrets', NOT 'Environment secrets'."
-            exit 1
-          else
-            echo "SUCCESS: Token found! (Length: ${#MY_TOKEN})"
-          fi
-      # -----------------------------------------------------
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install Rust stable
+      - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
-
-      - name: Install dependencies (Ubuntu only)
-        if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - name: Install frontend dependencies
         run: npm install
 
-      - name: Install and Map FFmpeg Sidecar
-        shell: bash
-        run: |
-          mkdir -p src-tauri/binaries
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            choco install ffmpeg
-            cp /c/ProgramData/chocolatey/lib/ffmpeg/tools/ffmpeg/bin/ffmpeg.exe src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe
-          elif [ "$RUNNER_OS" == "macOS" ]; then
-            brew install ffmpeg
-            cp $(which ffmpeg) src-tauri/binaries/ffmpeg-aarch64-apple-darwin
-          else
-            sudo apt-get update && sudo apt-get install -y ffmpeg
-            cp $(which ffmpeg) src-tauri/binaries/ffmpeg-x86_64-unknown-linux-gnu
-          fi
-
-      - name: Build and Sign the App
+      - name: Build the app
         uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: 'App v__VERSION__'
+          releaseName: 'Compress I/O ${{ github.ref_name }}'
           releaseBody: 'See the assets to download this version and install.'
           releaseDraft: true
           prerelease: false
