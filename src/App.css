@@ -247,3 +247,76 @@ input:focus, .select-soft:focus {
   font-weight: 600;
   font-family: 'Segoe UI', sans-serif;
 }
+/* --- TOGGLE SWITCH STYLES --- */
+.gpu-toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.gpu-toggle-container:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.gpu-toggle-container span {
+  font-size: 0.9rem;
+  color: #555;
+  font-weight: 500;
+}
+
+/* The Switch Box */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* The Slider */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc; /* Gray when OFF */
+  transition: .3s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Color when ON */
+input:checked + .slider {
+  background-color: #ff6b6b; /* Your theme red/pink */
+}
+
+/* Move circle when ON */
+input:checked + .slider:before {
+  transform: translateX(18px);
+}

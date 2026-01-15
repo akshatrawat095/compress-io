@@ -12,7 +12,7 @@ export default function App() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [logs, setLogs] = useState("");
   
-  // NEW: GPU State
+  // GPU Toggle State
   const [useGpu, setUseGpu] = useState(false);
 
   // Progress State
@@ -28,7 +28,6 @@ export default function App() {
   const isImage = filePath.match(/\.(jpg|jpeg|png|webp|bmp|tiff)$/i);
   const isPdf   = filePath.match(/\.(pdf)$/i);              
   const isDoc   = filePath.match(/\.(doc|docx|txt|rtf)$/i); 
-  // Helper for video specific UI
   const isVideo = !isImage && !isPdf && !isDoc && filePath;
   
   let fileTypeLabel = "VID";
@@ -118,7 +117,7 @@ export default function App() {
     } catch (err) { console.error(err); }
   }
 
-  // --- UPDATED COMPRESSION LOGIC (PRESERVES EXTENSION) ---
+  // --- UPDATED COMPRESSION LOGIC ---
   async function startCompression() {
     if (!filePath) return;
     
@@ -127,21 +126,18 @@ export default function App() {
       return;
     }
 
-    // 1. EXTRACT ORIGINAL EXTENSION (e.g., "mkv", "png")
     const originalExt = filePath.split('.').pop(); 
-    
     const filterName = isImage ? "Compressed Image" : "Compressed Video";
 
-    // 2. USE ORIGINAL EXTENSION IN SAVE DIALOG
     const outputPath = await save({
       filters: [{
         name: filterName,
-        extensions: [originalExt] // <--- This forces the original format
+        extensions: [originalExt] 
       }],
       defaultPath: `compressed_${Date.now()}.${originalExt}`
     });
 
-    if (!outputPath) return; // User cancelled
+    if (!outputPath) return;
 
     setIsProcessing(true);
     setProgress(0);
@@ -157,11 +153,11 @@ export default function App() {
         });
         setProgress(100); 
       } else {
-        // --- UPDATED: Pass the useGpu flag to Rust ---
+        // --- SMART AUTO DETECT CALL ---
         await invoke("compress_video", { 
           input: filePath,
           output: outputPath,
-          useGpu: useGpu  // <--- NEW ARGUMENT
+          autoGpu: useGpu  // We tell Rust to "Try Auto GPU"
         });
         setProgress(100);
       }
@@ -249,7 +245,7 @@ export default function App() {
           </AnimatePresence>
         </motion.div>
 
-        {/* --- SETTINGS AREA (Rescale & GPU) --- */}
+        {/* --- SETTINGS AREA --- */}
         <AnimatePresence>
           {(isImage || isVideo) && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="settings-soft">
@@ -265,17 +261,24 @@ export default function App() {
                 </div>
               )}
 
-              {/* VIDEO SETTINGS (NEW GPU TOGGLE) */}
+              {/* VIDEO SETTINGS (AUTO GPU WITH TOGGLE STYLE) */}
               {isVideo && (
                 <div className="input-block" style={{ marginTop: '10px' }}>
-                   <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '8px' }}>
-                     <input 
-                       type="checkbox" 
-                       checked={useGpu} 
-                       onChange={(e) => setUseGpu(e.target.checked)} 
-                       style={{ accentColor: '#ff6b6b', transform: 'scale(1.1)' }}
-                     />
-                     <span>Use GPU Acceleration (NVIDIA)</span>
+                   {/* This label wraps the whole row to make it clickable */}
+                   <label className="gpu-toggle-container">
+                     
+                     {/* The Slider Switch */}
+                     <div className="switch">
+                       <input 
+                         type="checkbox" 
+                         checked={useGpu} 
+                         onChange={(e) => setUseGpu(e.target.checked)} 
+                       />
+                       <span className="slider"></span>
+                     </div>
+
+                     {/* The Text Label */}
+                     <span>Enable Hardware Acceleration (Auto)</span>
                    </label>
                 </div>
               )}
@@ -291,7 +294,7 @@ export default function App() {
 
           {!isProcessing ? (
             <motion.button whileHover={{ scale: 1.02 }} className="btn-gradient start" onClick={startCompression} disabled={!filePath}>
-              Start Optimization {useGpu ? "(GPU)" : ""}
+              Start Optimization {useGpu ? "(Turbo)" : ""}
             </motion.button>
           ) : (
             <motion.button className="btn-gradient stop" onClick={() => window.location.reload()}>
