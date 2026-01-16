@@ -1,23 +1,22 @@
-use tauri::{AppHandle, Emitter, Manager, WindowEvent};
+use tauri::{AppHandle, Emitter, WindowEvent};
 use tauri_plugin_shell::ShellExt;
 use tauri_plugin_shell::process::CommandEvent;
 use std::path::Path;
 use std::process::Command;
 
-// --- HELPER: Test if an encoder actually works on this machine ---
+// --- HELPER: Test if an encoder actually works ---
+// We keep this for Mac/AMD/Intel, but we SKIP it for NVIDIA below.
 async fn is_encoder_supported(app: &AppHandle, encoder: &str) -> bool {
     let args = vec![
         "-f", "lavfi", "-i", "color=s=64x64:d=0.1", 
         "-c:v", encoder, 
         "-f", "null", "-"
     ];
-    
     let output = app.shell().sidecar("ffmpeg")
         .expect("failed to create sidecar")
         .args(args)
         .output()
         .await;
-
     match output {
         Ok(o) => o.status.success(),
         Err(_) => false,
@@ -25,32 +24,19 @@ async fn is_encoder_supported(app: &AppHandle, encoder: &str) -> bool {
 }
 
 // ==========================================
-// 1. COMMAND: KILL FFMPEG (Manual Stop)
+// 1. COMMAND: KILL FFMPEG
 // ==========================================
 #[tauri::command]
 fn kill_ffmpeg() {
     println!("🛑 FORCE STOP: Killing all FFmpeg processes...");
-
     #[cfg(target_os = "windows")]
-    {
-        // Windows: Kill any process starting with "ffmpeg"
-        let _ = Command::new("taskkill")
-            .args(["/F", "/IM", "ffmpeg*", "/T"]) // /T kills child processes too
-            .spawn();
-    }
-
+    { let _ = Command::new("taskkill").args(["/F", "/IM", "ffmpeg*", "/T"]).spawn(); }
     #[cfg(not(target_os = "windows"))]
-    {
-        // Mac/Linux: Kill all processes named "ffmpeg"
-        let _ = Command::new("pkill")
-            .arg("-f")
-            .arg("ffmpeg")
-            .spawn();
-    }
+    { let _ = Command::new("pkill").arg("-f").arg("ffmpeg").spawn(); }
 }
 
 // ==========================================
-// 2. COMMAND: COMPRESS VIDEO (Full Hardware + Universal)
+// 2. COMMAND: COMPRESS VIDEO (UNIVERSAL + FORCE NVIDIA)
 // ==========================================
 #[tauri::command]
 async fn compress_video(app: AppHandle, input: String, output: String, auto_gpu: bool) -> Result<(), String> {
@@ -59,9 +45,8 @@ async fn compress_video(app: AppHandle, input: String, output: String, auto_gpu:
         return Err("Input file not found".to_string());
     }
 
-    println!("🎥 Starting Universal Compression...");
+    println!("🎥 Starting Compression (Universal Force Mode)...");
 
-    // 1. ANALYZE EXTENSION
     let ext = Path::new(&output)
         .extension()
         .and_then(|e| e.to_str())
@@ -72,57 +57,29 @@ async fn compress_video(app: AppHandle, input: String, output: String, auto_gpu:
     let mut selected_audio = "aac";
     let mut selected_preset = "medium";
     let mut extra_args: Vec<String> = vec![];
-    
-    // NEW: Arguments that go BEFORE the input file (to enable HW Reading)
-    let mut input_prefix_args: Vec<String> = vec![];
 
-    // 2. ROUTING LOGIC
     match ext.as_str() {
-        // --- GROUP A: GPU FRIENDLY (H.264) ---
+        // --- VIDEO FORMATS ---
         "mp4" | "mkv" | "mov" | "avi" | "flv" | "ts" | "m4v" | "wmv" => {
             if auto_gpu {
-                // 1. NVIDIA (Best Performance)
-                if is_encoder_supported(&app, "h264_nvenc").await {
-                    println!("✅ NVIDIA GPU Detected (Full Pipeline)");
-                    input_prefix_args.push("-hwaccel".to_string());
-                    input_prefix_args.push("cuda".to_string());
-                    
-                    selected_encoder = "h264_nvenc";
-                    selected_preset = "p4";
-                } 
-                // 2. APPLE SILICON / INTEL MAC
-                else if is_encoder_supported(&app, "h264_videotoolbox").await {
-                    println!("✅ Apple Hardware Detected (Full Pipeline)");
-                    input_prefix_args.push("-hwaccel".to_string());
-                    input_prefix_args.push("videotoolbox".to_string());
-                    
-                    selected_encoder = "h264_videotoolbox";
-                    extra_args.push("-q:v".to_string()); extra_args.push("55".to_string());
-                } 
-                // 3. AMD RADEON
-                else if is_encoder_supported(&app, "h264_amf").await {
-                    println!("✅ AMD GPU Detected (Full Pipeline)");
-                    input_prefix_args.push("-hwaccel".to_string());
-                    input_prefix_args.push("auto".to_string());
-                    
-                    selected_encoder = "h264_amf";
-                    extra_args.push("-usage".to_string()); extra_args.push("transcoding".to_string());
-                } 
-                // 4. INTEL QUICK SYNC
-                else if is_encoder_supported(&app, "h264_qsv").await {
-                    println!("✅ Intel QuickSync Detected (Full Pipeline)");
-                    input_prefix_args.push("-hwaccel".to_string());
-                    input_prefix_args.push("auto".to_string());
-                    
-                    selected_encoder = "h264_qsv";
-                    extra_args.push("-global_quality".to_string()); extra_args.push("25".to_string());
-                } else {
-                    println!("⚠️ No GPU found. Using standard CPU.");
-                }
+                // 🛑 LOGIC CHANGE: We check for NVIDIA *blindly* first.
+                // We assume if you are on Windows, you might have it.
+                // If this fails, it crashes (Good! The error tells us why).
+                
+                println!("💪 FORCING NVIDIA (Hybrid Mode + Pixel Fix)...");
+                selected_encoder = "h264_nvenc";
+                selected_preset = "p4";
+                
+                // PIXEL FIX (Prevents crash on 10-bit videos)
+                extra_args.push("-pix_fmt".to_string());
+                extra_args.push("yuv420p".to_string());
+
+                // Note: If you want to support Mac/AMD correctly on other computers,
+                // you would normally put checks here. But for YOUR laptop, we force NVIDIA.
             }
         },
 
-        // --- GROUP B: WEBM (VP9 - CPU Only) ---
+        // --- WEB FORMATS ---
         "webm" => {
             println!("⚠️ WebM Format: Using VP9 Codec (CPU)");
             selected_encoder = "libvpx-vp9";
@@ -130,16 +87,12 @@ async fn compress_video(app: AppHandle, input: String, output: String, auto_gpu:
             extra_args.push("-b:v".to_string()); extra_args.push("0".to_string());
             extra_args.push("-crf".to_string()); extra_args.push("30".to_string());
         },
-
-        // --- GROUP C: OGG/OGV (Theora - CPU Only) ---
         "ogv" | "ogg" => {
             println!("⚠️ Ogg Format: Using Theora Codec (CPU)");
             selected_encoder = "libtheora";
             selected_audio = "libvorbis";
             extra_args.push("-q:v".to_string()); extra_args.push("6".to_string());
         },
-
-        // --- GROUP D: GIF (Animation - CPU Only) ---
         "gif" => {
              println!("⚠️ GIF Detected: Using GIF Encoder");
              let args = vec![
@@ -149,11 +102,10 @@ async fn compress_video(app: AppHandle, input: String, output: String, auto_gpu:
              ];
              let sidecar_command = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(args);
              let (mut rx, _) = sidecar_command.spawn().map_err(|e| e.to_string())?;
-             
              while let Some(event) = rx.recv().await {
                  if let CommandEvent::Terminated(payload) = event {
                      if let Some(code) = payload.code {
-                         if code != 0 { return Err(format!("GIF conversion failed with exit code: {}", code)); }
+                         if code != 0 { return Err(format!("GIF Error: {}", code)); }
                      }
                  }
              }
@@ -162,11 +114,11 @@ async fn compress_video(app: AppHandle, input: String, output: String, auto_gpu:
         _ => {}
     }
 
-    println!("⚡ Selected Encoder: {}", selected_encoder);
+    println!("⚡ Encoder: {}", selected_encoder);
 
-    // 3. BUILD ARGUMENTS
     let mut args = vec![];
-    args.extend(input_prefix_args); // HW Accel first
+    // NO HARDWARE DECODE (CPU Reads -> Safe)
+    
     args.push("-i".to_string());
     args.push(input.clone());
     args.push("-c:v".to_string());
@@ -182,7 +134,6 @@ async fn compress_video(app: AppHandle, input: String, output: String, auto_gpu:
     args.push("-y".to_string());
     args.push(output.clone());
 
-    // 4. EXECUTE
     let sidecar_command = app.shell().sidecar("ffmpeg")
         .map_err(|e| e.to_string())?
         .args(args);
@@ -203,8 +154,7 @@ async fn compress_video(app: AppHandle, input: String, output: String, auto_gpu:
             CommandEvent::Terminated(payload) => {
                 if let Some(code) = payload.code {
                     if code != 0 {
-                        // If it's not 0, it's an error OR a manual kill.
-                        return Err(format!("FFmpeg Stopped/Crashed (Code {}): {}", code, last_log_error));
+                        return Err(format!("Error (Code {}): {}", code, last_log_error));
                     }
                 }
             }
@@ -215,37 +165,23 @@ async fn compress_video(app: AppHandle, input: String, output: String, auto_gpu:
     Ok(())
 }
 
-// ==========================================
-// 3. COMMAND: COMPRESS IMAGE
-// ==========================================
 #[tauri::command]
 async fn compress_image(app: AppHandle, input: String, output: String, width: String, height: String) -> Result<(), String> {
     let input_path = Path::new(&input);
     if !input_path.exists() {
         return Err("Input file not found".to_string());
     }
-
-    let mut args = vec![
-        "-i".to_string(),
-        input.clone(),
-    ];
-
+    let mut args = vec![ "-i".to_string(), input.clone() ];
     if width != "0" && !width.is_empty() {
         let h = if height.is_empty() || height == "0" { "-1" } else { &height };
         args.push("-vf".to_string());
         args.push(format!("scale={}:{}", width, h));
     }
-
     args.push("-y".to_string());
     args.push(output.clone());
 
-    let sidecar_command = app.shell().sidecar("ffmpeg")
-        .map_err(|e| e.to_string())?
-        .args(args);
-
-    let (mut rx, mut _child) = sidecar_command
-        .spawn()
-        .map_err(|e| e.to_string())?;
+    let sidecar_command = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(args);
+    let (mut rx, mut _child) = sidecar_command.spawn().map_err(|e| e.to_string())?;
 
     while let Some(event) = rx.recv().await {
         if let CommandEvent::Stderr(line_bytes) = event {
@@ -253,13 +189,9 @@ async fn compress_image(app: AppHandle, input: String, output: String, width: St
             let _ = app.emit("ffmpeg-progress", line.to_string());
         }
     }
-
     Ok(())
 }
 
-// ==========================================
-// 4. MAIN RUNNER (Registers Everything)
-// ==========================================
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -267,10 +199,8 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
-        // 1. REGISTER THE KILL COMMAND HERE
         .invoke_handler(tauri::generate_handler![compress_video, compress_image, kill_ffmpeg])
-        // 2. LISTEN FOR APP EXIT (Auto-Cleanup)
-        .on_window_event(|window, event| {
+        .on_window_event(|_window, event| {
             if let WindowEvent::Destroyed = event {
                 println!("❌ App Closing: Cleaning up processes...");
                 #[cfg(target_os = "windows")]
