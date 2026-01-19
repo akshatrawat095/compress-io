@@ -4,7 +4,7 @@ use tauri_plugin_shell::process::CommandEvent;
 use std::path::Path;
 use std::process::Command;
 
-// --- HELPER: Check for GPU Support ---
+// --- HELPER: Smart Check to see what GPU the user has ---
 async fn is_encoder_supported(app: &AppHandle, encoder: &str) -> bool {
     let args = vec![
         "-f", "lavfi", "-i", "color=s=64x64:d=0.1", 
@@ -35,7 +35,7 @@ fn kill_ffmpeg() {
 }
 
 // ==========================================
-// 2. COMMAND: COMPRESS VIDEO (UNIVERSAL + PLAYABLE FIX)
+// 2. COMMAND: COMPRESS VIDEO (TRUE UNIVERSAL + SAFE)
 // ==========================================
 #[tauri::command]
 async fn compress_video(app: AppHandle, input: String, output: String, auto_gpu: bool) -> Result<(), String> {
@@ -44,7 +44,7 @@ async fn compress_video(app: AppHandle, input: String, output: String, auto_gpu:
         return Err("Input file not found".to_string());
     }
 
-    println!("🎥 Starting Compression (Compatibility Mode)...");
+    println!("🎥 Starting Universal Compression...");
 
     let ext = Path::new(&output)
         .extension()
@@ -61,41 +61,38 @@ async fn compress_video(app: AppHandle, input: String, output: String, auto_gpu:
         // --- STANDARD VIDEO FORMATS (MP4, MKV, MOV, etc.) ---
         "mp4" | "mkv" | "mov" | "avi" | "flv" | "ts" | "m4v" | "wmv" => {
             
-            // 🛑 CRITICAL FIX: Force pixel format to yuv420p for ALL encoders.
-            // This ensures the video plays on Windows, Mac, iPhone, Android, and TVs.
+            // ✅ PLAYBACK FIX: Force standard pixels for EVERYONE.
+            // This ensures videos play on TVs, iPhones, and Windows Media Player.
             extra_args.push("-pix_fmt".to_string()); 
             extra_args.push("yuv420p".to_string());
 
             if auto_gpu {
-                // 1. CHECK FOR NVIDIA (Windows)
+                // 1. CHECK FOR NVIDIA (Best for Windows)
                 if is_encoder_supported(&app, "h264_nvenc").await {
-                    println!("✅ NVIDIA GPU Detected (Safe Mode)");
+                    println!("✅ NVIDIA GPU Detected");
                     selected_encoder = "h264_nvenc";
                     selected_preset = "p4";
                 } 
-                // 2. CHECK FOR MAC (Apple Silicon / Intel)
+                // 2. CHECK FOR MAC (Apple Silicon / Intel Mac)
                 else if is_encoder_supported(&app, "h264_videotoolbox").await {
                     println!("✅ Apple Hardware Detected");
                     selected_encoder = "h264_videotoolbox";
                     extra_args.push("-q:v".to_string()); extra_args.push("55".to_string());
                 } 
-                // 3. CHECK FOR AMD (Windows)
+                // 3. CHECK FOR AMD (Radeon)
                 else if is_encoder_supported(&app, "h264_amf").await {
                     println!("✅ AMD GPU Detected");
                     selected_encoder = "h264_amf";
                     extra_args.push("-usage".to_string()); extra_args.push("transcoding".to_string());
                 } 
-                // 4. CHECK FOR INTEL (QuickSync)
+                // 4. CHECK FOR INTEL (QuickSync - iGPUs)
                 else if is_encoder_supported(&app, "h264_qsv").await {
                     println!("✅ Intel QuickSync Detected");
                     selected_encoder = "h264_qsv";
                     extra_args.push("-global_quality".to_string()); extra_args.push("25".to_string());
                 } else {
-                    println!("⚠️ No GPU found. Using CPU.");
+                    println!("⚠️ No GPU found. Falling back to CPU.");
                 }
-            } else {
-                 // Even if GPU is OFF (CPU Mode), we still force yuv420p!
-                 println!("⚠️ GPU Disabled. Using CPU.");
             }
         },
 
@@ -137,8 +134,6 @@ async fn compress_video(app: AppHandle, input: String, output: String, auto_gpu:
     println!("⚡ Encoder: {}", selected_encoder);
 
     let mut args = vec![];
-    
-    // CPU READS -> GPU WRITES (Hybrid Mode for Stability)
     args.push("-i".to_string());
     args.push(input.clone());
     args.push("-c:v".to_string());
