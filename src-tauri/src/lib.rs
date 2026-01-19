@@ -4,27 +4,46 @@ use tauri_plugin_shell::process::CommandEvent;
 use std::path::Path;
 use std::process::Command;
 
-// --- HELPER: Smart Check to see what GPU the user has ---
+// --- DIAGNOSTIC HELPER: Checks and PRINTS GPU status ---
 async fn is_encoder_supported(app: &AppHandle, encoder: &str) -> bool {
+    println!("🔍 DIAGNOSTIC: Checking support for encoder: {}", encoder);
+    
+    // ✅ FIX: Use 1280x720 (HD) instead of 64x64.
+    // NVIDIA cards refuse to encode tiny 64x64 videos, causing false failures.
     let args = vec![
-        "-f", "lavfi", "-i", "color=s=64x64:d=0.1", 
+        "-f", "lavfi", "-i", "color=s=1280x720:d=0.1", 
         "-c:v", encoder, 
         "-f", "null", "-"
     ];
-    let output = app.shell().sidecar("ffmpeg")
-        .expect("failed to create sidecar")
-        .args(args)
-        .output()
-        .await;
+    
+    let sidecar = app.shell().sidecar("ffmpeg");
+    if sidecar.is_err() {
+        println!("❌ DIAGNOSTIC: Could not find FFmpeg sidecar!");
+        return false;
+    }
+
+    let output = sidecar.unwrap().args(args).output().await;
+
     match output {
-        Ok(o) => o.status.success(),
-        Err(_) => false,
+        Ok(o) => {
+            if o.status.success() {
+                println!("✅ DIAGNOSTIC: {} is WORKING!", encoder);
+                true
+            } else {
+                let err = String::from_utf8_lossy(&o.stderr);
+                // Clean up error message for cleaner logs
+                let short_err = err.lines().last().unwrap_or("Unknown error");
+                println!("❌ DIAGNOSTIC: {} FAILED! Error: {}", encoder, short_err);
+                false
+            }
+        },
+        Err(e) => {
+            println!("❌ DIAGNOSTIC: Failed to run check. Error: {}", e);
+            false
+        },
     }
 }
 
-// ==========================================
-// 1. COMMAND: KILL FFMPEG
-// ==========================================
 #[tauri::command]
 fn kill_ffmpeg() {
     println!("🛑 FORCE STOP: Killing all FFmpeg processes...");
@@ -34,81 +53,68 @@ fn kill_ffmpeg() {
     { let _ = Command::new("pkill").arg("-f").arg("ffmpeg").spawn(); }
 }
 
-// ==========================================
-// 2. COMMAND: COMPRESS VIDEO (TRUE UNIVERSAL + SAFE)
-// ==========================================
 #[tauri::command]
 async fn compress_video(app: AppHandle, input: String, output: String, auto_gpu: bool) -> Result<(), String> {
+    println!("🚀 DIAGNOSTIC: Compress Video Function Called");
+
     let input_path = Path::new(&input);
     if !input_path.exists() {
         return Err("Input file not found".to_string());
     }
 
-    println!("🎥 Starting Universal Compression...");
-
-    let ext = Path::new(&output)
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("")
-        .to_lowercase();
-
+    let ext = Path::new(&output).extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
     let mut selected_encoder = "libx264";
     let mut selected_audio = "aac";
     let mut selected_preset = "medium";
     let mut extra_args: Vec<String> = vec![];
 
     match ext.as_str() {
-        // --- STANDARD VIDEO FORMATS (MP4, MKV, MOV, etc.) ---
         "mp4" | "mkv" | "mov" | "avi" | "flv" | "ts" | "m4v" | "wmv" => {
-            
-            // ✅ PLAYBACK FIX: Force standard pixels for EVERYONE.
-            // This ensures videos play on TVs, iPhones, and Windows Media Player.
+            // FIX: Force standard pixels (yuv420p) for playback compatibility
             extra_args.push("-pix_fmt".to_string()); 
             extra_args.push("yuv420p".to_string());
 
             if auto_gpu {
-                // 1. CHECK FOR NVIDIA (Best for Windows)
+                println!("🔍 DIAGNOSTIC: Auto GPU is ON. Checking NVIDIA...");
+                // 1. CHECK NVIDIA
                 if is_encoder_supported(&app, "h264_nvenc").await {
-                    println!("✅ NVIDIA GPU Detected");
+                    println!("🎉 DIAGNOSTIC: SWITCHING TO NVIDIA (h264_nvenc)");
                     selected_encoder = "h264_nvenc";
                     selected_preset = "p4";
-                } 
-                // 2. CHECK FOR MAC (Apple Silicon / Intel Mac)
-                else if is_encoder_supported(&app, "h264_videotoolbox").await {
-                    println!("✅ Apple Hardware Detected");
-                    selected_encoder = "h264_videotoolbox";
-                    extra_args.push("-q:v".to_string()); extra_args.push("55".to_string());
-                } 
-                // 3. CHECK FOR AMD (Radeon)
-                else if is_encoder_supported(&app, "h264_amf").await {
-                    println!("✅ AMD GPU Detected");
-                    selected_encoder = "h264_amf";
-                    extra_args.push("-usage".to_string()); extra_args.push("transcoding".to_string());
-                } 
-                // 4. CHECK FOR INTEL (QuickSync - iGPUs)
-                else if is_encoder_supported(&app, "h264_qsv").await {
-                    println!("✅ Intel QuickSync Detected");
-                    selected_encoder = "h264_qsv";
-                    extra_args.push("-global_quality".to_string()); extra_args.push("25".to_string());
                 } else {
-                    println!("⚠️ No GPU found. Falling back to CPU.");
+                    println!("⚠️ DIAGNOSTIC: NVIDIA CHECK FAILED. Checking Others...");
+                    
+                    // 2. CHECK MAC (VideoToolbox)
+                    if is_encoder_supported(&app, "h264_videotoolbox").await {
+                         println!("✅ DIAGNOSTIC: Using Apple VideoToolbox");
+                         selected_encoder = "h264_videotoolbox";
+                         extra_args.push("-q:v".to_string()); extra_args.push("55".to_string());
+                    } 
+                    // 3. CHECK AMD (AMF)
+                    else if is_encoder_supported(&app, "h264_amf").await {
+                         println!("✅ DIAGNOSTIC: Using AMD AMF");
+                         selected_encoder = "h264_amf";
+                         extra_args.push("-usage".to_string()); extra_args.push("transcoding".to_string());
+                    } 
+                    // 4. CHECK INTEL (QuickSync)
+                    else if is_encoder_supported(&app, "h264_qsv").await {
+                         println!("✅ DIAGNOSTIC: Using Intel QuickSync");
+                         selected_encoder = "h264_qsv";
+                         extra_args.push("-global_quality".to_string()); extra_args.push("25".to_string());
+                    } else {
+                        println!("⚠️ DIAGNOSTIC: NO GPU FOUND. Using CPU.");
+                    }
                 }
+            } else {
+                println!("ℹ️ DIAGNOSTIC: Auto GPU is OFF. Using CPU.");
             }
         },
-
-        // --- WEB FORMATS ---
         "webm" => {
             println!("⚠️ WebM Format: Using VP9 Codec (CPU)");
             selected_encoder = "libvpx-vp9";
             selected_audio = "libopus";
             extra_args.push("-b:v".to_string()); extra_args.push("0".to_string());
             extra_args.push("-crf".to_string()); extra_args.push("30".to_string());
-        },
-        "ogv" | "ogg" => {
-            println!("⚠️ Ogg Format: Using Theora Codec (CPU)");
-            selected_encoder = "libtheora";
-            selected_audio = "libvorbis";
-            extra_args.push("-q:v".to_string()); extra_args.push("6".to_string());
         },
         "gif" => {
              println!("⚠️ GIF Detected: Using GIF Encoder");
@@ -131,7 +137,7 @@ async fn compress_video(app: AppHandle, input: String, output: String, auto_gpu:
         _ => {}
     }
 
-    println!("⚡ Encoder: {}", selected_encoder);
+    println!("⚡ FINAL DECISION: Encoder = {}", selected_encoder);
 
     let mut args = vec![];
     args.push("-i".to_string());
