@@ -4,8 +4,7 @@ use tauri_plugin_shell::process::CommandEvent;
 use std::path::Path;
 use std::process::Command;
 
-// --- HELPER: Test if an encoder actually works ---
-// We keep this for Mac/AMD/Intel, but we SKIP it for NVIDIA below.
+// --- HELPER: Check for GPU Support ---
 async fn is_encoder_supported(app: &AppHandle, encoder: &str) -> bool {
     let args = vec![
         "-f", "lavfi", "-i", "color=s=64x64:d=0.1", 
@@ -36,7 +35,7 @@ fn kill_ffmpeg() {
 }
 
 // ==========================================
-// 2. COMMAND: COMPRESS VIDEO (UNIVERSAL + FORCE NVIDIA)
+// 2. COMMAND: COMPRESS VIDEO (UNIVERSAL + PLAYABLE FIX)
 // ==========================================
 #[tauri::command]
 async fn compress_video(app: AppHandle, input: String, output: String, auto_gpu: bool) -> Result<(), String> {
@@ -45,7 +44,7 @@ async fn compress_video(app: AppHandle, input: String, output: String, auto_gpu:
         return Err("Input file not found".to_string());
     }
 
-    println!("🎥 Starting Compression (Universal Force Mode)...");
+    println!("🎥 Starting Compression (Compatibility Mode)...");
 
     let ext = Path::new(&output)
         .extension()
@@ -59,23 +58,44 @@ async fn compress_video(app: AppHandle, input: String, output: String, auto_gpu:
     let mut extra_args: Vec<String> = vec![];
 
     match ext.as_str() {
-        // --- VIDEO FORMATS ---
+        // --- STANDARD VIDEO FORMATS (MP4, MKV, MOV, etc.) ---
         "mp4" | "mkv" | "mov" | "avi" | "flv" | "ts" | "m4v" | "wmv" => {
-            if auto_gpu {
-                // 🛑 LOGIC CHANGE: We check for NVIDIA *blindly* first.
-                // We assume if you are on Windows, you might have it.
-                // If this fails, it crashes (Good! The error tells us why).
-                
-                println!("💪 FORCING NVIDIA (Hybrid Mode + Pixel Fix)...");
-                selected_encoder = "h264_nvenc";
-                selected_preset = "p4";
-                
-                // PIXEL FIX (Prevents crash on 10-bit videos)
-                extra_args.push("-pix_fmt".to_string());
-                extra_args.push("yuv420p".to_string());
+            
+            // 🛑 CRITICAL FIX: Force pixel format to yuv420p for ALL encoders.
+            // This ensures the video plays on Windows, Mac, iPhone, Android, and TVs.
+            extra_args.push("-pix_fmt".to_string()); 
+            extra_args.push("yuv420p".to_string());
 
-                // Note: If you want to support Mac/AMD correctly on other computers,
-                // you would normally put checks here. But for YOUR laptop, we force NVIDIA.
+            if auto_gpu {
+                // 1. CHECK FOR NVIDIA (Windows)
+                if is_encoder_supported(&app, "h264_nvenc").await {
+                    println!("✅ NVIDIA GPU Detected (Safe Mode)");
+                    selected_encoder = "h264_nvenc";
+                    selected_preset = "p4";
+                } 
+                // 2. CHECK FOR MAC (Apple Silicon / Intel)
+                else if is_encoder_supported(&app, "h264_videotoolbox").await {
+                    println!("✅ Apple Hardware Detected");
+                    selected_encoder = "h264_videotoolbox";
+                    extra_args.push("-q:v".to_string()); extra_args.push("55".to_string());
+                } 
+                // 3. CHECK FOR AMD (Windows)
+                else if is_encoder_supported(&app, "h264_amf").await {
+                    println!("✅ AMD GPU Detected");
+                    selected_encoder = "h264_amf";
+                    extra_args.push("-usage".to_string()); extra_args.push("transcoding".to_string());
+                } 
+                // 4. CHECK FOR INTEL (QuickSync)
+                else if is_encoder_supported(&app, "h264_qsv").await {
+                    println!("✅ Intel QuickSync Detected");
+                    selected_encoder = "h264_qsv";
+                    extra_args.push("-global_quality".to_string()); extra_args.push("25".to_string());
+                } else {
+                    println!("⚠️ No GPU found. Using CPU.");
+                }
+            } else {
+                 // Even if GPU is OFF (CPU Mode), we still force yuv420p!
+                 println!("⚠️ GPU Disabled. Using CPU.");
             }
         },
 
@@ -117,8 +137,8 @@ async fn compress_video(app: AppHandle, input: String, output: String, auto_gpu:
     println!("⚡ Encoder: {}", selected_encoder);
 
     let mut args = vec![];
-    // NO HARDWARE DECODE (CPU Reads -> Safe)
     
+    // CPU READS -> GPU WRITES (Hybrid Mode for Stability)
     args.push("-i".to_string());
     args.push(input.clone());
     args.push("-c:v".to_string());
@@ -161,16 +181,13 @@ async fn compress_video(app: AppHandle, input: String, output: String, auto_gpu:
             _ => {}
         }
     }
-
     Ok(())
 }
 
 #[tauri::command]
 async fn compress_image(app: AppHandle, input: String, output: String, width: String, height: String) -> Result<(), String> {
     let input_path = Path::new(&input);
-    if !input_path.exists() {
-        return Err("Input file not found".to_string());
-    }
+    if !input_path.exists() { return Err("Input file not found".to_string()); }
     let mut args = vec![ "-i".to_string(), input.clone() ];
     if width != "0" && !width.is_empty() {
         let h = if height.is_empty() || height == "0" { "-1" } else { &height };
@@ -179,10 +196,8 @@ async fn compress_image(app: AppHandle, input: String, output: String, width: St
     }
     args.push("-y".to_string());
     args.push(output.clone());
-
     let sidecar_command = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(args);
     let (mut rx, mut _child) = sidecar_command.spawn().map_err(|e| e.to_string())?;
-
     while let Some(event) = rx.recv().await {
         if let CommandEvent::Stderr(line_bytes) = event {
             let line = String::from_utf8_lossy(&line_bytes);
