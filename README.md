@@ -1,4 +1,3 @@
-
 # 🚀 Compress I/O
 ### The Universal, Privacy-Focused Media Compressor.
 > **Maintained by:** [Akshat Rawat](https://github.com/akshatrawat095)  
