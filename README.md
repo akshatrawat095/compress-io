@@ -91,7 +91,7 @@ npm install
 npm run tauri dev
 
 # 4. Build for Release
-npm run tauri build
+npm run tauri build```
 
 📬 Contact
 If you have issues or feature requests, feel free to reach out!
