@@ -93,11 +93,10 @@ npm run tauri dev
 # 4. Build for Release
 npm run tauri build
 ```
-📬 Contact
+## 📬 Contact
+
 If you have issues or feature requests, feel free to reach out!
 
-Email: akshatrawat095@gmail.com
-
-X (Twitter): @AkshatRawat20
-
-Instagram: @akshatrawat095
+* **Email:** [akshatrawat095@gmail.com](mailto:akshatrawat095@gmail.com)
+* **X (Twitter):** [@AkshatRawat20](https://x.com/AkshatRawat20)
+* **Instagram:** [@akshatrawat095](https://instagram.com/akshatrawat095)
