@@ -3,7 +3,7 @@
 > **Maintained by:** [Akshat Rawat](https://github.com/akshatrawat095)  
 > **Repository:** [github.com/akshatrawat095/compress-io](https://github.com/akshatrawat095/compress-io)
 
-![Downloads](https://img.shields.io/github/downloads/akshatrawat095/compress-io/total?style=for-the-badge&color=blue)
+![Downloads](https://img.shields.io/github/downloads/akshatrawat095/compress-io/total?style=for-the-badge&color=blue&logo=github)
 ![Version](https://img.shields.io/github/v/release/akshatrawat095/compress-io?style=for-the-badge&color=green)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Mac%20%7C%20Linux-lightgrey?style=for-the-badge)
 
