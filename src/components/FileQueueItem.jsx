@@ -64,17 +64,6 @@ const FileQueueItem = React.memo(({
          </div>
       </div>
 
-      {file.status === 'done' && file.type === 'IMG' && (
-         <button 
-           onClick={() => onViewComparison(file)} 
-           className={`text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all ${
-             isDarkMode ? 'bg-white/5 text-white hover:bg-white/10' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-           }`}
-         >
-           Preview
-         </button>
-      )}
-
       {!isProcessing && (
          <button 
            onClick={() => onRemove(index)} 
