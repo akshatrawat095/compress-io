@@ -5,7 +5,7 @@ use std::path::Path;
 use std::process::Command as StdCommand;
 use std::sync::Mutex;
 use std::collections::HashMap;
-use std::fs::DirEntry;
+
 
 struct EncoderCache(Mutex<HashMap<String, bool>>);
 
@@ -370,7 +370,8 @@ async fn enhance_video(
         cmd.stdout(std::process::Stdio::null());
         cmd.stderr(std::process::Stdio::null());
 
-        if cfg!(target_os = "windows") {
+        #[cfg(target_os = "windows")]
+        {
             use std::os::windows::process::CommandExt;
             cmd.creation_flags(0x08000000);
         }
