@@ -73,17 +73,17 @@ async fn enhance_image(
     scale: String,
     format: String,
     model_type: String, 
-    face_restore: bool, 
+    _face_restore: bool, 
     hyper_detail: bool,
     tile_size: String,
 ) -> Result<(), String> {
     println!("✨ DIAGNOSTIC: Enhance Image Function Called");
 
     let resource_dir = app.path().resource_dir().map_err(|e| e.to_string())?;
-    let mut engine_path = resource_dir.join("binaries").join("ai_engine").join("realesrgan-ncnn-vulkan");
-
     #[cfg(target_os = "windows")]
-    { engine_path.set_extension("exe"); }
+    let engine_path = resource_dir.join("binaries").join("ai_engine").join("realesrgan-ncnn-vulkan.exe");
+    #[cfg(not(target_os = "windows"))]
+    let engine_path = resource_dir.join("binaries").join("ai_engine").join("realesrgan-ncnn-vulkan");
 
     if !engine_path.exists() {
         return Err(format!("AI engine not found at {:?}", engine_path));
@@ -250,7 +250,7 @@ async fn enhance_video(
 
     // 2. Extract Audio
     let _ = app.emit("enhance-progress", "Separating audio track...");
-    let mut audio_cmd = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(vec![
+    let audio_cmd = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(vec![
         "-y", "-hwaccel", "auto", "-i", &input, "-vn", "-c:a", "copy", audio_path.to_str().unwrap()
     ]);
     let audio_status = audio_cmd.output().await.map_err(|e| e.to_string())?;
@@ -263,7 +263,7 @@ async fn enhance_video(
     let mut vf_chain = "scale=-2:'min(1080,ih)'".to_string();
     if stabilize {
         let trf_path = temp_dir_path.join("transform.trf").to_str().unwrap().replace("\\", "/");
-        let mut stab_cmd = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(vec![
+        let stab_cmd = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(vec![
             "-y", "-hwaccel", "auto", "-i", &input,
             "-vf", &format!("vidstabdetect=stepsize=32:shakiness=10:accuracy=10:result={}", trf_path),
             "-f", "null", "-"
@@ -275,7 +275,7 @@ async fn enhance_video(
         vf_chain = format!("hqdn3d=4.0:3.0:6.0:4.5,{}", vf_chain);
     }
 
-    let mut frames_cmd = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(vec![
+    let frames_cmd = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(vec![
         "-y", "-hwaccel", "auto", "-i", &input, 
         "-threads", "4", 
         "-vf", &vf_chain, 
@@ -322,8 +322,10 @@ async fn enhance_video(
     let _ = app.emit("enhance-progress", format!("Turbo Engine Adjusted: {} Processing Lanes (VRAM: {}MB).", num_chunks, vram_mb));
 
     let resource_dir = app.path().resource_dir().map_err(|e| e.to_string())?;
-    let mut engine_path = resource_dir.join("binaries").join("ai_engine").join("realesrgan-ncnn-vulkan");
-    if cfg!(target_os = "windows") { engine_path.set_extension("exe"); }
+    #[cfg(target_os = "windows")]
+    let engine_path = resource_dir.join("binaries").join("ai_engine").join("realesrgan-ncnn-vulkan.exe");
+    #[cfg(not(target_os = "windows"))]
+    let engine_path = resource_dir.join("binaries").join("ai_engine").join("realesrgan-ncnn-vulkan");
 
     let model_name = match model_type.as_str() {
         "anime" => "realesr-animevideov3-x4",
