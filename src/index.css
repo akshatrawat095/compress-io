@@ -1,0 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Outfit", sans-serif;
+  --font-sans: "Plus Jakarta Sans", sans-serif;
+
+  --color-studio-violet: #8b5cf6;
+  --color-studio-rose: #f43f5e;
+  --color-studio-obsidian: #030712;
+  
+  --color-vibrant-violet: #a78bfa;
+  --color-vibrant-rose: #fb7185;
+
+  --radius-studio: 2.5rem;
+  
+  --shadow-studio-xl: 0 0 80px rgba(0, 0, 0, 0.6), 0 0 30px rgba(139, 92, 246, 0.1);
+  --shadow-inner-glow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+}
+
+@layer base {
+  body {
+    @apply m-0 overflow-hidden h-screen font-sans text-slate-800 dark:text-slate-100 selection:bg-studio-violet/30;
+    background-color: transparent;
+  }
+}
+
+@layer components {
+  /* Dynamic Glass Panel Utility v2.0 */
+  .studio-glass {
+    @apply bg-white/60 dark:bg-slate-900/40 backdrop-blur-[15px] border border-white/20 dark:border-white/10 shadow-studio-xl rounded-[2.5rem] transition-all duration-500 ease-out;
+    box-shadow: var(--shadow-studio-xl), var(--shadow-inner-glow);
+  }
+
+  .studio-text-glow {
+    text-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+  }
+}
