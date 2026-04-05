@@ -9,7 +9,50 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  # Step 1: Create the GitHub release once (not 3x in parallel)
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.create-release.outputs.id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        id: create-release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: 'Compress I/O ${{ github.ref_name }}'
+          draft: false
+          prerelease: false
+          body: |
+            ## 📦 Compress I/O ${{ github.ref_name }}
+
+            High-performance media compression for images and videos — powered by FFmpeg, built with Tauri.
+
+            ---
+
+            ### 🖥️ Download for your OS
+
+            | Platform | File | Notes |
+            |----------|------|-------|
+            | **Windows** | `.msi` installer | Recommended for most users |
+            | **macOS** | `.dmg` disk image | Apple Silicon (M-series) |
+            | **Linux** | `.AppImage` | Universal, no install needed |
+            | **Linux** | `.deb` | For Debian/Ubuntu |
+
+            > ⚠️ **macOS users**: If blocked by Gatekeeper, right-click the `.dmg` → Open.
+            >
+            > ⚠️ **Linux AppImage**: Run `chmod +x Compress*.AppImage` before launching.
+
+            ---
+
+            Built with ❤️ using Tauri v2 + React.
+
+  # Step 2: Build for each platform and upload to the release created above
+  build:
+    needs: create-release
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -76,36 +119,10 @@ jobs:
       - name: Install frontend dependencies
         run: npm install
 
-      - name: Build the app
+      - name: Build and upload to release
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'Compress I/O ${{ github.ref_name }}'
-          releaseBody: |
-            ## 📦 Compress I/O ${{ github.ref_name }}
-
-            High-performance media compression for images and videos — powered by FFmpeg, built with Tauri.
-
-            ---
-
-            ### 🖥️ Download for your OS
-
-            | Platform | File | Notes |
-            |----------|------|-------|
-            | **Windows** | `.msi` installer | Recommended for most users |
-            | **macOS** | `.dmg` disk image | Apple Silicon (M-series) |
-            | **Linux** | `.AppImage` | Universal, no install needed |
-            | **Linux** | `.deb` | For Debian/Ubuntu |
-
-            > ⚠️ **macOS users**: If blocked by Gatekeeper, right-click the `.dmg` → Open.
-            > 
-            > ⚠️ **Linux AppImage**: Run `chmod +x Compress*.AppImage` before launching.
-
-            ---
-
-            Built with ❤️ using Tauri v2 + React.
-          releaseDraft: false
-          prerelease: false
+          releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
