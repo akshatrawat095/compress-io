@@ -52,7 +52,7 @@ No cloud uploads. No file size limits. No watermarks. Your data stays on your ma
 1.  Go to the [**Releases Page**](https://github.com/akshatrawat095/compress-io/releases).
 2.  Download the installer for your system:
     * **Windows:** `Compress-IO_x64-setup.exe`
-    * **Mac:** `Compress-IO_aarch64.dmg` (M1/M2) or `_x64.dmg` (Intel)
+    * **Mac:** `Compress-IO_aarch64.dmg` (M1/M2/M3) or `_x64.dmg` (Intel)
 3.  Run the installer and start compressing!
 
 ---
