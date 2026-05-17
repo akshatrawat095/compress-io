@@ -99,4 +99,4 @@ If you have issues or feature requests, feel free to reach out!
 
 * **Email:** [akshatrawat095@gmail.com](mailto:akshatrawat095@gmail.com)
 * **X (Twitter):** [@AkshatRawat20](https://x.com/AkshatRawat20)
-* **Instagram:** [@akshatrawat095](https://instagram.com/error_on_first_tri3)
+* **Instagram:** [@error_on_first_tri3](https://instagram.com/error_on_first_tri3)
