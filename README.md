@@ -76,23 +76,7 @@ No cloud uploads. No file size limits. No watermarks. Your data stays on your ma
 
 ---
 
-## 👨‍💻 Development
 
-Want to build it yourself?
-
-```bash
-# 1. Clone the repo
-git clone [https://github.com/akshatrawat095/compress-io.git](https://github.com/akshatrawat095/compress-io.git)
-
-# 2. Install dependencies
-npm install
-
-# 3. Run in Development Mode
-npm run tauri dev
-
-# 4. Build for Release
-npm run tauri build
-```
 ## 📬 Contact
 
 If you have issues or feature requests, feel free to reach out!
