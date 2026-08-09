@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open, save, message, ask } from "@tauri-apps/plugin-dialog";
-import { check } from "@tauri-apps/plugin-updater";
-import { relaunch } from "@tauri-apps/plugin-process";
 import { motion, AnimatePresence, Reorder, useMotionValue, useSpring, useTransform, useAnimate, useDragControls, useMotionTemplate } from "framer-motion";
 import { listen } from "@tauri-apps/api/event"; 
 import MotionToggle from "./components/MotionToggle";
@@ -17,6 +15,7 @@ import Icon from "./components/Icon";
 import FileQueueItem from "./components/FileQueueItem";
 import DashboardHeader from "./components/DashboardHeader";
 import SettingsDeck from "./components/SettingsDeck";
+import UpdaterModal from "./components/UpdaterModal";
 
 export default function App() {
   const [showIntro, setShowIntro] = useState(true);
@@ -93,30 +92,11 @@ export default function App() {
     return `${m}m ${s}s`;
   }, []);
 
-  const checkForAppUpdates = useCallback(async () => {
-    try {
-      const update = await check();
-      if (update) {
-        const canUpdate = await ask(`Version ${update.version} is available! Update now?`, {
-          title: "Update Available",
-          kind: "info"
-        });
-        if (canUpdate) {
-          await update.downloadAndInstall();
-          await relaunch();
-        }
-      }
-    } catch (e) {
-      console.warn("Update check failed:", e);
-    }
-  }, []);
 
   useEffect(() => {
     let unlistenFfmpeg, unlistenEnhance;
 
     const setupListeners = async () => {
-      checkForAppUpdates();
-
       unlistenFfmpeg = await listen("ffmpeg-progress", (event) => {
         const line = event.payload;
         const durationMatch = line.match(/Duration:\s+(\d{2}):(\d{2}):(\d{2})/);
@@ -218,7 +198,7 @@ export default function App() {
       if (unlistenFfmpeg) unlistenFfmpeg();
       if (unlistenEnhance) unlistenEnhance();
     };
-  }, [formatTime, rawProgress, checkForAppUpdates]);
+  }, [formatTime, rawProgress]);
 
   useEffect(() => {
     if (successData && successScope.current) {
@@ -799,6 +779,8 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <UpdaterModal isDarkMode={isDarkMode} />
     </div>
   );
 }
