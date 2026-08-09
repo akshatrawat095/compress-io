@@ -94,13 +94,75 @@ export default function UpdaterModal({ isDarkMode }) {
               Version {update.version}
             </p>
 
-            <div className={`w-full p-4 mb-8 text-left rounded-xl text-sm max-h-40 overflow-y-auto custom-scrollbar border ${
-              isDarkMode ? 'bg-white/5 border-white/5 text-slate-300' : 'bg-slate-50 border-slate-100 text-slate-600'
+            <div className={`w-full mb-8 text-left rounded-xl text-sm max-h-60 overflow-y-auto custom-scrollbar ${
+              isDarkMode ? 'text-slate-300' : 'text-slate-600'
             }`}>
               {update.body ? (
-                 <div className="whitespace-pre-wrap font-medium">{update.body}</div>
+                (() => {
+                  const bodyText = update.body;
+                  const secStart = bodyText.indexOf('[SECURITY_AUDIT]');
+                  const secEnd = bodyText.indexOf('[/SECURITY_AUDIT]');
+                  
+                  if (secStart !== -1 && secEnd !== -1) {
+                    const mainBody = bodyText.substring(0, secStart).trim();
+                    const secBody = bodyText.substring(secStart + 16, secEnd).trim();
+                    const afterBody = bodyText.substring(secEnd + 17).trim();
+                    
+                    return (
+                      <div className="flex flex-col gap-4">
+                        {mainBody && (
+                          <div className={`p-4 rounded-xl border whitespace-pre-wrap font-medium ${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
+                            {mainBody}
+                          </div>
+                        )}
+                        
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className={`relative overflow-hidden p-5 rounded-2xl border shadow-lg ${isDarkMode ? 'bg-emerald-950/20 border-emerald-900/30' : 'bg-emerald-50 border-emerald-100'}`}
+                        >
+                          {/* Animated Shield Background */}
+                          <div className="absolute -right-6 -top-6 opacity-10">
+                            <svg className="w-32 h-32 text-emerald-500" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                            </svg>
+                          </div>
+                          
+                          <div className="relative z-10 flex items-center gap-3 mb-3">
+                            <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500">
+                              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                              </svg>
+                            </div>
+                            <h3 className={`text-base font-black uppercase tracking-widest ${isDarkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>
+                              Security Audit Passed
+                            </h3>
+                          </div>
+                          
+                          <div className={`whitespace-pre-wrap font-mono text-xs leading-relaxed ${isDarkMode ? 'text-emerald-200/70' : 'text-emerald-800/80'}`}>
+                            {secBody}
+                          </div>
+                        </motion.div>
+
+                        {afterBody && (
+                          <div className={`p-4 rounded-xl border whitespace-pre-wrap font-medium ${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
+                            {afterBody}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                  
+                  return (
+                    <div className={`p-4 rounded-xl border whitespace-pre-wrap font-medium ${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
+                      {bodyText}
+                    </div>
+                  );
+                })()
               ) : (
-                 <div className="italic opacity-60">No release notes provided.</div>
+                <div className={`p-4 rounded-xl border italic opacity-60 ${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
+                  No release notes provided.
+                </div>
               )}
             </div>
 

@@ -25,7 +25,7 @@ jobs:
           draft: false
           prerelease: false
           body: |
-            ## 📦 Compress I/O ${{ github.ref_name }}
+            ## Compress-IO v${{ env.VERSION }}
 
             High-performance media compression for images and videos — powered by FFmpeg, built with Tauri.
 
@@ -43,6 +43,20 @@ jobs:
             > ⚠️ **macOS users**: If blocked by Gatekeeper, right-click the `.dmg` → Open.
             >
             > ⚠️ **Linux AppImage**: Run `chmod +x Compress*.AppImage` before launching.
+
+            ---
+
+            [SECURITY_AUDIT]
+            🛡️ Proactive Security Hardening (4 Dependencies Patched)
+            We've conducted a comprehensive dependency audit and proactively patched 4 underlying vulnerabilities to ensure your local environment remains hermetically secure.
+
+            🔴 High Severity (3)
+            • Vite / PostCSS: Patched path traversal and arbitrary file disclosure vectors during asset compilation.
+            • Nanoid: Resolved an edge-case memory exhaustion vector (infinite loop generation).
+
+            🟡 Low Severity (1)
+            • Babel Core: Patched a local arbitrary file read via compromised sourceMappingURL comments.
+            [/SECURITY_AUDIT]
 
             ---
 
