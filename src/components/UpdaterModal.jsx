@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export default function UpdaterModal({ isDarkMode }) {
   const [update, setUpdate] = useState(null);
@@ -66,14 +68,16 @@ export default function UpdaterModal({ isDarkMode }) {
           }`}
         >
           <motion.div
-            initial={{ y: 40, opacity: 0, scale: 0.95 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className={`relative max-w-md w-full p-8 rounded-[2rem] flex flex-col items-center text-center shadow-2xl border transition-colors ${
+            initial={{ y: 80, opacity: 0, scale: 0.9, rotateX: 20, filter: 'blur(20px)' }}
+            animate={{ y: 0, opacity: 1, scale: 1, rotateX: 0, filter: 'blur(0px)' }}
+            exit={{ y: 60, opacity: 0, scale: 0.9, rotateX: -15, filter: 'blur(15px)' }}
+            transition={{ type: "spring", stiffness: 250, damping: 25, mass: 1.2 }}
+            className={`relative max-w-md w-full p-8 rounded-[2rem] flex flex-col items-center text-center shadow-2xl border transition-colors will-change-transform ${
               isDarkMode
-                ? 'bg-slate-900 border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)]'
-                : 'bg-white border-slate-200 shadow-[0_0_40px_rgba(0,0,0,0.1)]'
+                ? 'bg-slate-900 border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.8)]'
+                : 'bg-white border-slate-200 shadow-[0_0_80px_rgba(0,0,0,0.2)]'
             }`}
+            style={{ perspective: 1000 }}
           >
             {/* Animated Download Icon */}
             <motion.div
@@ -102,6 +106,23 @@ export default function UpdaterModal({ isDarkMode }) {
                   const bodyText = update.body;
                   const secStart = bodyText.indexOf('[SECURITY_AUDIT]');
                   const secEnd = bodyText.indexOf('[/SECURITY_AUDIT]');
+
+                  const staggerVariants = {
+                    hidden: { opacity: 0, y: 15, filter: 'blur(10px)' },
+                    visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { type: 'spring', stiffness: 300, damping: 20 } }
+                  };
+                  
+                  const mdComponents = {
+                    h2: ({node, ...props}) => <motion.h2 variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className="text-lg font-black mb-2 tracking-wide will-change-transform" {...props} />,
+                    h3: ({node, ...props}) => <motion.h3 variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className="text-md font-bold mt-5 mb-3 text-fuchsia-500 will-change-transform drop-shadow-[0_0_12px_rgba(217,70,239,0.4)]" {...props} />,
+                    p: ({node, ...props}) => <motion.p variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className="mb-3 leading-relaxed opacity-90 will-change-transform" {...props} />,
+                    table: ({node, ...props}) => <motion.div variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className="overflow-x-auto will-change-transform"><table className="w-full text-left border-collapse my-4 text-xs" {...props} /></motion.div>,
+                    th: ({node, ...props}) => <th className={`border-b py-2 px-3 font-bold ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`} {...props} />,
+                    tr: ({node, ...props}) => <motion.tr whileHover={{ scale: 1.02, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }} transition={{ type: 'spring', stiffness: 400 }} className="will-change-transform cursor-default" {...props} />,
+                    td: ({node, ...props}) => <td className={`border-b py-2 px-3 opacity-80 ${isDarkMode ? 'border-white/5' : 'border-slate-100'}`} {...props} />,
+                    hr: ({node, ...props}) => <motion.hr variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className={`my-5 will-change-transform ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`} {...props} />,
+                    blockquote: ({node, ...props}) => <motion.blockquote variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className={`border-l-2 border-fuchsia-500 pl-3 py-1 my-3 text-xs italic will-change-transform ${isDarkMode ? 'bg-fuchsia-500/10' : 'bg-fuchsia-500/5'}`} {...props} />,
+                  };
                   
                   if (secStart !== -1 && secEnd !== -1) {
                     const mainBody = bodyText.substring(0, secStart).trim();
@@ -111,8 +132,10 @@ export default function UpdaterModal({ isDarkMode }) {
                     return (
                       <div className="flex flex-col gap-4">
                         {mainBody && (
-                          <div className={`p-4 rounded-xl border whitespace-pre-wrap font-medium ${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
-                            {mainBody}
+                          <div className={`p-4 rounded-xl border font-medium overflow-hidden ${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
+                            <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+                              {mainBody}
+                            </ReactMarkdown>
                           </div>
                         )}
                         
@@ -121,12 +144,15 @@ export default function UpdaterModal({ isDarkMode }) {
                           animate={{ opacity: 1, y: 0 }}
                           className={`relative overflow-hidden p-5 rounded-2xl border shadow-lg ${isDarkMode ? 'bg-emerald-950/20 border-emerald-900/30' : 'bg-emerald-50 border-emerald-100'}`}
                         >
-                          {/* Animated Shield Background */}
-                          <div className="absolute -right-6 -top-6 opacity-10">
+                          <motion.div 
+                            animate={{ scale: [1, 1.1, 1], opacity: [0.1, 0.2, 0.1] }} 
+                            transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }} 
+                            className="absolute -right-6 -top-6 will-change-transform"
+                          >
                             <svg className="w-32 h-32 text-emerald-500" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                             </svg>
-                          </div>
+                          </motion.div>
                           
                           <div className="relative z-10 flex items-center gap-3 mb-3">
                             <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500">
@@ -145,8 +171,10 @@ export default function UpdaterModal({ isDarkMode }) {
                         </motion.div>
 
                         {afterBody && (
-                          <div className={`p-4 rounded-xl border whitespace-pre-wrap font-medium ${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
-                            {afterBody}
+                          <div className={`p-4 rounded-xl border font-medium overflow-hidden ${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
+                            <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ ...mdComponents, p: ({node, ...props}) => <motion.p variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className="text-xs opacity-80 text-center will-change-transform" {...props} /> }}>
+                              {afterBody}
+                            </ReactMarkdown>
                           </div>
                         )}
                       </div>
@@ -154,8 +182,10 @@ export default function UpdaterModal({ isDarkMode }) {
                   }
                   
                   return (
-                    <div className={`p-4 rounded-xl border whitespace-pre-wrap font-medium ${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
-                      {bodyText}
+                    <div className={`p-4 rounded-xl border font-medium overflow-hidden ${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+                        {bodyText}
+                      </ReactMarkdown>
                     </div>
                   );
                 })()
