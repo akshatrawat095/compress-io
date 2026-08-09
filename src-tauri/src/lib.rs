@@ -54,8 +54,9 @@ fn stop_job() {
     println!("🛑 FORCE STOP: Killing all media processes...");
     #[cfg(target_os = "windows")]
     { 
-        let _ = StdCommand::new("cmd").args(["/C", "taskkill /F /T /IM ffmpeg*"]).spawn(); 
-        let _ = StdCommand::new("cmd").args(["/C", "taskkill /F /T /IM realesrgan*"]).spawn();
+        use std::os::windows::process::CommandExt;
+        let _ = StdCommand::new("cmd").args(["/C", "taskkill /F /T /IM ffmpeg*"]).creation_flags(0x08000000).spawn(); 
+        let _ = StdCommand::new("cmd").args(["/C", "taskkill /F /T /IM realesrgan*"]).creation_flags(0x08000000).spawn();
     }
     #[cfg(not(target_os = "windows"))]
     { 
@@ -665,8 +666,9 @@ pub fn run() {
             if let WindowEvent::Destroyed = event {
                 #[cfg(target_os = "windows")]
                 { 
-                    let _ = StdCommand::new("cmd").args(["/C", "taskkill /F /T /IM ffmpeg*"]).spawn(); 
-                    let _ = StdCommand::new("cmd").args(["/C", "taskkill /F /T /IM realesrgan*"]).spawn();
+                    use std::os::windows::process::CommandExt;
+                    let _ = StdCommand::new("cmd").args(["/C", "taskkill /F /T /IM ffmpeg*"]).creation_flags(0x08000000).spawn(); 
+                    let _ = StdCommand::new("cmd").args(["/C", "taskkill /F /T /IM realesrgan*"]).creation_flags(0x08000000).spawn();
                 }
                 #[cfg(not(target_os = "windows"))]
                 { 
