@@ -25,26 +25,22 @@ jobs:
           draft: false
           prerelease: false
           body: |
-            ## Compress-IO v${{ env.VERSION }}
-
+            ## Compress-IO Update
+            
             High-performance media compression for images and videos — powered by FFmpeg, built with Tauri.
 
             ---
 
-            ### 🖥️ Download for your OS
+            ### ✨ Release Highlights
 
-            | Platform | File | Notes |
-            |----------|------|-------|
-            | **Windows** | `-setup.exe` installer | Smooth, automatic background updates |
-            | **macOS** | `.dmg` disk image | Apple Silicon (M-series) |
-            | **Linux** | `.AppImage` | Universal, no install needed |
-            | **Linux** | `.deb` | For Debian/Ubuntu |
+            | Feature | Category | Description |
+            |---------|----------|-------------|
+            | **Cinematic UI** | Visuals | Hyper-modern 3D animations and fluid physics |
+            | **Markdown Engine** | Architecture | Fully styled, hardware-accelerated release notes |
+            | **Silent Exit** | Performance | Eliminated terminal flashes during process cleanup |
+            | **Background Updater** | Installers | Seamless, in-place Windows upgrades without duplicates |
 
-            > ⚠️ **Windows users**: Please uninstall any older `.msi` versions before installing the new `.exe`.
-            >
-            > ⚠️ **macOS users**: If blocked by Gatekeeper, right-click the `.dmg` → Open.
-            >
-            > ⚠️ **Linux AppImage**: Run `chmod +x Compress*.AppImage` before launching.
+            > 💡 **Pro Tip**: Try hovering your mouse over the table rows above to see the new interactive glassmorphic effects!
 
             ---
 
@@ -145,26 +141,22 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
           releaseBody: |
-            ## Compress-IO v${{ env.VERSION }}
-
+            ## Compress-IO Update
+            
             High-performance media compression for images and videos — powered by FFmpeg, built with Tauri.
 
             ---
 
-            ### 🖥️ Download for your OS
+            ### ✨ Release Highlights
 
-            | Platform | File | Notes |
-            |----------|------|-------|
-            | **Windows** | `-setup.exe` installer | Smooth, automatic background updates |
-            | **macOS** | `.dmg` disk image | Apple Silicon (M-series) |
-            | **Linux** | `.AppImage` | Universal, no install needed |
-            | **Linux** | `.deb` | For Debian/Ubuntu |
+            | Feature | Category | Description |
+            |---------|----------|-------------|
+            | **Cinematic UI** | Visuals | Hyper-modern 3D animations and fluid physics |
+            | **Markdown Engine** | Architecture | Fully styled, hardware-accelerated release notes |
+            | **Silent Exit** | Performance | Eliminated terminal flashes during process cleanup |
+            | **Background Updater** | Installers | Seamless, in-place Windows upgrades without duplicates |
 
-            > ⚠️ **Windows users**: Please uninstall any older `.msi` versions before installing the new `.exe`.
-            >
-            > ⚠️ **macOS users**: If blocked by Gatekeeper, right-click the `.dmg` → Open.
-            >
-            > ⚠️ **Linux AppImage**: Run `chmod +x Compress*.AppImage` before launching.
+            > 💡 **Pro Tip**: Try hovering your mouse over the table rows above to see the new interactive glassmorphic effects!
 
             ---
 
