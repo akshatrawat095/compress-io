@@ -1,6 +1,6 @@
 [package]
 name = "universal-compressor"
-version = "0.1.21"
+version = "0.1.34"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
