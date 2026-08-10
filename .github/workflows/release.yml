@@ -25,36 +25,30 @@ jobs:
           draft: true
           prerelease: true
           body: |
-            ## Compress-IO Update
+            ## Compress-IO v0.1.49
             
             High-performance media compression for images and videos — powered by FFmpeg, built with Tauri.
 
             ---
 
-            ### ✨ Release Highlights
+            ### 🎯 Precision Target Size Engine (2-Pass Encoding)
+            We engineered an entirely new algorithmic approach to media compression. You can now toggle "Target Size" to define an exact file size limit in MB or GB. Under the hood, this triggers a highly sophisticated 2-Pass FFmpeg encoding sequence. The first pass maps the complexity of the video, and the second pass mathematically allocates the bitrate to hit your exact size limit perfectly. This is an absolute game-changer for fitting high-quality videos into strict Discord (25MB) or Email (20MB) attachment limits without wasting a single kilobyte.
 
-            | Feature | Category | Description |
-            |---------|----------|-------------|
-            | **Cinematic UI** | Visuals | Hyper-modern 3D animations and fluid physics |
-            | **Markdown Engine** | Architecture | Fully styled, hardware-accelerated release notes |
-            | **Silent Exit** | Performance | Eliminated terminal flashes during process cleanup |
-            | **Background Updater** | Installers | Seamless, in-place Windows upgrades without duplicates |
+            ### ✨ The Re-Engineered Success Card
+            We completely tore down and rebuilt the completion screen for maximum user experience. The Success Card has been vertically compressed into a much sleeker, modern UI element, meaning you no longer have to manually scroll down to see your results. We injected gorgeous framer-motion physics into the card for a premium feel. Furthermore, the "Show in Folder" integration has been entirely rewritten in Rust to flawlessly bridge the gap between the app and Windows Explorer, ensuring it highlights your freshly compressed file instantly.
 
-            > 💡 **Pro Tip**: Try hovering your mouse over the table rows above to see the new interactive glassmorphic effects!
+            ### 💎 Obsessive UI Polish & Intelligence
+            We scrutinize every single pixel of the user experience. In this update:
+            - **Intelligent Hardware Warnings:** Added a dynamic, sliding amber warning box that intelligently alerts you when GPU Acceleration might interfere with exact target size precision.
+            - **Dropdown Physics:** Rewrote the clipping boundaries of the dropdown menus using strict framer-motion overflow logic, allowing menus to beautifully float above the interface.
+            - **Decluttered Interface:** Stripped out arbitrary, hardcoded size presets to provide a vastly cleaner, more professional manual input system.
 
-            ---
-
-            [SECURITY_AUDIT]
-            🛡️ Proactive Security Hardening (4 Dependencies Patched)
-            We've conducted a comprehensive dependency audit and proactively patched 4 underlying vulnerabilities to ensure your local environment remains hermetically secure.
-
-            🔴 High Severity (3)
-            • Vite / PostCSS: Patched path traversal and arbitrary file disclosure vectors during asset compilation.
-            • Nanoid: Resolved an edge-case memory exhaustion vector (infinite loop generation).
-
-            🟡 Low Severity (1)
-            • Babel Core: Patched a local arbitrary file read via compromised sourceMappingURL comments.
-            [/SECURITY_AUDIT]
+            | Feature | In v0.1.48 | Now in v0.1.49 |
+            | :--- | :--- | :--- |
+            | **Compression** | Best-effort size estimation | **Exact mathematical MB/GB targeting** |
+            | **Success Card** | Large, required scrolling | **Compact, frictionless, and animated** |
+            | **Folder Access** | Broken path navigation | **Native 1-Click Windows Explorer highlight** |
+            | **GPU Awareness** | Silent precision loss | **Animated, intelligent slider warnings** |
 
             ---
 
