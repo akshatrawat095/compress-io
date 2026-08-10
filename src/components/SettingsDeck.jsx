@@ -56,7 +56,15 @@ const SettingsDeck = React.memo(({
   startJob,
   stopJob,
   progress,
-  timeLeft
+  timeLeft,
+  targetSizeEnabled,
+  setTargetSizeEnabled,
+  targetSize,
+  setTargetSize,
+  targetSizeUnit,
+  setTargetSizeUnit,
+  targetFormat,
+  setTargetFormat,
 }) => {
   const [activeInfo, setActiveInfo] = useState(null);
 
@@ -194,6 +202,7 @@ const SettingsDeck = React.memo(({
         {/* Row 2: Media Specific Settings */}
         {appMode === "compress" ? (
           <>
+             {/* Output Dimensions */}
              {hasImages && (
                 <div className="flex flex-col gap-1">
                    <label className={`text-[7px] font-black uppercase tracking-[0.1em] px-1 opacity-40 ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>Output Dimensions</label>
@@ -215,6 +224,94 @@ const SettingsDeck = React.memo(({
                    </div>
                 </div>
              )}
+
+             {/* TARGET SIZE */}
+             <div className="flex flex-col gap-1 mt-1">
+                 <div className="flex items-center justify-between px-1">
+                    <div className="flex items-center gap-1.5">
+                      <Icon name="terminal" className="w-2.5 h-2.5 text-studio-rose" />
+                      <span className={`text-[9px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-300' : 'text-slate-800'}`}>TARGET SIZE</span>
+                    </div>
+                    <MotionToggle checked={targetSizeEnabled} onChange={setTargetSizeEnabled} isDarkMode={isDarkMode} />
+                 </div>
+                 
+                 <AnimatePresence mode="wait">
+                    {targetSizeEnabled && (
+                       <motion.div 
+                          layoutId="targetSizeBox"
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="flex flex-col gap-1.5 overflow-hidden mt-1"
+                       >
+                          <div className={`p-2 rounded-xl border flex gap-1.5 items-center ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+                              <input 
+                                type="number" 
+                                placeholder="SIZE (e.g. 8)" 
+                                value={targetSize} 
+                                onChange={(e) => setTargetSize(e.target.value)} 
+                                className={`w-2/3 bg-transparent border rounded-md px-2 py-1.5 text-[10px] outline-none focus:ring-1 focus:ring-studio-rose/50 transition-all font-bold ${isDarkMode ? 'border-white/10 text-white placeholder:text-slate-600' : 'border-slate-300 text-slate-900 placeholder:text-slate-400'}`} 
+                              />
+                              <div className="w-1/3">
+                                <MotionSelect 
+                                    value={targetSizeUnit} isDarkMode={isDarkMode} 
+                                    onChange={setTargetSizeUnit} 
+                                    options={[
+                                      { value: "KB", label: "KB" },
+                                      { value: "MB", label: "MB" },
+                                      { value: "GB", label: "GB" }
+                                    ]} 
+                                />
+                              </div>
+                          </div>
+
+                          {/* Format Selector */}
+                          <div className={`p-2 rounded-xl border flex flex-col gap-1 ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+                              <label className={`text-[7px] font-black uppercase tracking-[0.1em] opacity-40 ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>OUTPUT FORMAT</label>
+                              <select 
+                                value={targetFormat} 
+                                onChange={(e) => setTargetFormat(e.target.value)}
+                                className={`w-full bg-transparent border rounded-md px-2 py-1.5 text-[10px] outline-none font-bold ${isDarkMode ? 'border-white/10 text-white' : 'border-slate-300 text-slate-900'}`}
+                              >
+                                <option value="same">Same as Input</option>
+                                {hasImages && (
+                                   <optgroup label="Images">
+                                      <option value="jpg">JPG</option>
+                                      <option value="jpeg">JPEG</option>
+                                      <option value="png">PNG</option>
+                                      <option value="webp">WebP</option>
+                                      <option value="bmp">BMP</option>
+                                      <option value="tiff">TIFF</option>
+                                   </optgroup>
+                                )}
+                                {hasVideos && (
+                                   <optgroup label="Videos">
+                                      <option value="mp4">MP4</option>
+                                      <option value="mkv">MKV</option>
+                                      <option value="avi">AVI</option>
+                                      <option value="mov">MOV</option>
+                                      <option value="webm">WebM</option>
+                                      <option value="flv">FLV</option>
+                                      <option value="wmv">WMV</option>
+                                      <option value="m4v">M4V</option>
+                                      <option value="ts">TS</option>
+                                      <option value="ogv">OGV</option>
+                                      <option value="gif">GIF</option>
+                                   </optgroup>
+                                )}
+                              </select>
+                          </div>
+
+                          <div className="flex gap-1">
+                             <button onClick={() => {setTargetSize("8"); setTargetSizeUnit("MB");}} className={`flex-1 py-1 text-[8px] font-bold rounded-lg border transition-all ${isDarkMode ? 'border-white/10 text-slate-400 hover:text-white hover:border-white/30' : 'border-slate-200 text-slate-500 hover:bg-slate-100'}`}>Discord (8 MB)</button>
+                             <button onClick={() => {setTargetSize("25"); setTargetSizeUnit("MB");}} className={`flex-1 py-1 text-[8px] font-bold rounded-lg border transition-all ${isDarkMode ? 'border-white/10 text-slate-400 hover:text-white hover:border-white/30' : 'border-slate-200 text-slate-500 hover:bg-slate-100'}`}>Email (25 MB)</button>
+                          </div>
+                       </motion.div>
+                    )}
+                 </AnimatePresence>
+             </div>
+
+             <div className={`h-px w-full mt-1 ${isDarkMode ? 'bg-white/5' : 'bg-slate-100'}`} />
           </>
         ) : (
           <div className="flex flex-col gap-1.5">

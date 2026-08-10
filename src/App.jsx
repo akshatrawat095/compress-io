@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open, save, message, ask } from "@tauri-apps/plugin-dialog";
+import { open as openShell } from "@tauri-apps/plugin-shell";
 import { motion, AnimatePresence, Reorder, useMotionValue, useSpring, useTransform, useAnimate, useDragControls, useMotionTemplate } from "framer-motion";
 import { listen } from "@tauri-apps/api/event"; 
 import MotionToggle from "./components/MotionToggle";
@@ -16,6 +17,8 @@ import FileQueueItem from "./components/FileQueueItem";
 import DashboardHeader from "./components/DashboardHeader";
 import SettingsDeck from "./components/SettingsDeck";
 import UpdaterModal from "./components/UpdaterModal";
+import AuraGrid from "./components/AuraGrid";
+import NumberFlow from "@number-flow/react";
 
 export default function App() {
   const [showIntro, setShowIntro] = useState(true);
@@ -43,6 +46,11 @@ export default function App() {
   const [tileSize, setTileSize] = useState("0");
   
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const [targetSizeEnabled, setTargetSizeEnabled] = useState(false);
+  const [targetSize, setTargetSize] = useState("");
+  const [targetSizeUnit, setTargetSizeUnit] = useState("MB");
+  const [targetFormat, setTargetFormat] = useState("same");
 
   const [showComparison, setShowComparison] = useState(false);
   const [enhancedPath, setEnhancedPath] = useState("");
@@ -343,12 +351,22 @@ export default function App() {
       if (fileQueue.length === 1) {
         finalPath = singleSavePath;
       } else {
-        const targetExt = (appMode === "enhance" && file.type === "VID") ? "mp4" : 
-                          (appMode === "enhance" && file.type === "IMG") ? aiFormat : file.ext;
+        let targetExt = file.ext;
+        if (appMode === "enhance" && file.type === "VID") targetExt = "mp4";
+        if (appMode === "enhance" && file.type === "IMG") targetExt = aiFormat;
+        if (appMode === "compress" && targetSizeEnabled && targetFormat !== "same") targetExt = targetFormat;
+        
         const prefix = appMode === "enhance" ? "enhanced" : "compressed";
         const baseName = file.name.substring(0, file.name.lastIndexOf('.'));
         const separator = outputFolder.includes('\\') ? '\\' : '/';
         finalPath = `${outputFolder}${separator}${baseName}_${prefix}_${Date.now()}_${i}.${targetExt}`;
+      }
+
+      let originalFileSize = 0;
+      try {
+        originalFileSize = await invoke("get_file_size", { path: file.path });
+      } catch (e) {
+        console.error("Could not get original file size", e);
       }
 
       try {
@@ -387,16 +405,31 @@ export default function App() {
           }
         } else {
           setIsIndeterminate(false); setProgress(0); setTimeLeft("Starting...");
-          if (file.type === 'IMG') {
-            await invoke("compress_image", { input: file.path, output: finalPath, width: dimSettings.width || "0", height: dimSettings.height || "0" });
+          if (targetSizeEnabled && targetSize) {
+             let targetKb = parseFloat(targetSize);
+             if (targetSizeUnit === "MB") targetKb *= 1024;
+             if (targetSizeUnit === "GB") targetKb *= 1024 * 1024;
+             
+             if (file.type === 'IMG') {
+                await invoke("compress_image_target_size", { input: file.path, output: finalPath, targetSizeKb: targetKb, width: dimSettings.width || "0", height: dimSettings.height || "0" });
+             } else {
+                await invoke("compress_video_target_size", { input: file.path, output: finalPath, targetSizeKb: targetKb, autoGpu: useGpu });
+             }
           } else {
-            await invoke("compress_video", { input: file.path, output: finalPath, autoGpu: useGpu });
+             if (file.type === 'IMG') {
+               await invoke("compress_image", { input: file.path, output: finalPath, width: dimSettings.width || "0", height: dimSettings.height || "0" });
+             } else {
+               await invoke("compress_video", { input: file.path, output: finalPath, autoGpu: useGpu });
+             }
           }
         }
         
         setProgress(100);
+        let compressedFileSize = 0;
+        try { compressedFileSize = await invoke("get_file_size", { path: finalPath }); } catch (e) {}
+
         localSuccessCount++; 
-        setFileQueue(prev => prev.map((f, idx) => idx === i ? {...f, status: 'done', finalPath: finalPath} : f));
+        setFileQueue(prev => prev.map((f, idx) => idx === i ? {...f, status: 'done', finalPath: finalPath, origSize: originalFileSize, compSize: compressedFileSize} : f));
 
       } catch (e) {
         console.error(e);
@@ -408,9 +441,20 @@ export default function App() {
     setIsProcessing(false); setIsIndeterminate(false); setTimeLeft(null); setCurrentIndex(null);
     const savedLocation = fileQueue.length === 1 ? singleSavePath : outputFolder;
     if (localSuccessCount > 0) {
-        setSuccessData({ count: localSuccessCount, path: savedLocation });
+        let totalOrig = 0;
+        let totalComp = 0;
+        setFileQueue(prev => {
+           prev.forEach(f => {
+              if (f.status === 'done' && f.origSize && f.compSize) {
+                 totalOrig += f.origSize;
+                 totalComp += f.compSize;
+              }
+           });
+           setSuccessData({ count: localSuccessCount, path: savedLocation, origSize: totalOrig, compSize: totalComp });
+           return prev;
+        });
     }
-  }, [fileQueue, appMode, aiFormat, aiScale, aiVideoModel, aiFps, useGpu, denoise, stabilize, hyperDetail, faceRestore, tileSize, dimSettings, rawProgress, formatTime]);
+  }, [fileQueue, appMode, aiFormat, aiScale, aiVideoModel, aiFps, useGpu, denoise, stabilize, hyperDetail, faceRestore, tileSize, dimSettings, targetSizeEnabled, targetSize, targetSizeUnit, targetFormat, rawProgress, formatTime]);
 
   const viewComparison = useCallback(async (file) => {
     setSliderPos(50);
@@ -616,6 +660,14 @@ export default function App() {
              stopJob={stopJob}
              progress={progress}
              timeLeft={timeLeft}
+             targetSizeEnabled={targetSizeEnabled}
+             setTargetSizeEnabled={setTargetSizeEnabled}
+             targetSize={targetSize}
+             setTargetSize={setTargetSize}
+             targetSizeUnit={targetSizeUnit}
+             setTargetSizeUnit={setTargetSizeUnit}
+             targetFormat={targetFormat}
+             setTargetFormat={setTargetFormat}
           />
         </motion.section>
       </motion.main>
@@ -669,7 +721,7 @@ export default function App() {
                   />
                </div>
                
-               <h2 className={`text-3xl font-black mb-4 italic uppercase tracking-widest ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+               <h2 className={`text-3xl font-black mb-2 italic uppercase tracking-widest ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
                  {appMode === 'compress' ? 'Compressed' : 'Enhanced'}
                </h2>
                
@@ -677,12 +729,84 @@ export default function App() {
                  {successData.count} {successData.count === 1 ? 'asset has' : 'assets have'} been successfully processed.
                </p>
 
-               <div className={`w-full mb-8 p-4 rounded-2xl border text-left flex flex-col gap-2 ${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-100 border-slate-200'}`}>
-                  <span className={`text-[9px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Destination Folder</span>
+               {successData.origSize && successData.compSize && appMode === 'compress' && (() => {
+                  const savedBytes = successData.origSize - successData.compSize;
+                  const savedMB = savedBytes / (1024 * 1024);
+                  const savedPercent = Math.max(0, Math.round((savedBytes / successData.origSize) * 100));
+                  const origMB = (successData.origSize / (1024 * 1024)).toFixed(1);
+                  const compMB = (successData.compSize / (1024 * 1024)).toFixed(1);
+
+                  const metrics = [
+                    { value: Math.floor(savedMB / 3.5), label: "high-res photos" },
+                    { value: Math.floor(savedMB / 3.5), label: "MP3 songs" },
+                    { value: Math.floor(savedMB / 1.5), label: "PDF documents" },
+                    { value: Math.floor(savedMB / 1),   label: "WhatsApp voice notes" },
+                    { value: Math.floor(savedMB / 150), label: "minutes of 1080p video" }
+                  ];
+                  const funMetric = metrics.filter(m => m.value >= 1).sort((a, b) => b.value - a.value)[0];
+
+                  return (
+                    <div className="w-full mb-6">
+                       <div className={`p-5 rounded-2xl border text-left flex flex-col gap-3 relative overflow-hidden ${isDarkMode ? 'bg-black/40 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+                          <AuraGrid />
+                          
+                          <div className="relative z-10 flex justify-between items-center">
+                             <span className={`text-[10px] font-black uppercase tracking-widest opacity-50 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Original</span>
+                             <span className={`text-sm font-bold font-mono ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{origMB} MB</span>
+                          </div>
+                          <div className="relative z-10 flex justify-between items-center">
+                             <span className={`text-[10px] font-black uppercase tracking-widest opacity-50 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Compressed</span>
+                             <span className={`text-lg font-black font-mono text-studio-rose`}>
+                                <NumberFlow value={parseFloat(compMB)} format={{ minimumFractionDigits: 1, maximumFractionDigits: 1 }} /> MB
+                             </span>
+                          </div>
+                          <div className="relative z-10 flex justify-between items-center">
+                             <span className={`text-[10px] font-black uppercase tracking-widest opacity-50 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>You Saved</span>
+                             <span className={`text-sm font-bold font-mono ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                                <NumberFlow value={parseFloat(savedMB.toFixed(1))} /> MB ({savedPercent}%)
+                             </span>
+                          </div>
+                          
+                          <div className="relative z-10 w-full h-1.5 bg-black/20 rounded-full mt-2 overflow-hidden">
+                             <motion.div 
+                               initial={{ width: "0%" }}
+                               animate={{ width: `${savedPercent}%` }}
+                               transition={{ duration: 1.5, ease: "easeOut" }}
+                               className="h-full bg-studio-rose rounded-full"
+                             />
+                          </div>
+                       </div>
+                       
+                       {funMetric && (
+                          <div className={`mt-3 text-xs italic ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                             💡 You saved enough space for <span className="font-bold text-studio-rose"><NumberFlow value={funMetric.value} /> {funMetric.label}</span>.
+                          </div>
+                       )}
+                    </div>
+                  );
+               })()}
+
+               <button
+                  onClick={async () => {
+                     try {
+                        const fullPath = successData.path;
+                        const lastSlashIndex = Math.max(fullPath.lastIndexOf('/'), fullPath.lastIndexOf('\\'));
+                        const folderPath = lastSlashIndex !== -1 ? fullPath.substring(0, lastSlashIndex) : fullPath;
+                        await openShell(folderPath);
+                     } catch (e) {
+                        console.error('Failed to open folder:', e);
+                     }
+                  }}
+                  className={`w-full mb-6 p-4 rounded-2xl border text-left flex flex-col gap-2 group cursor-pointer transition-all hover:scale-[1.02] hover:-translate-y-1 ${isDarkMode ? 'bg-white/5 border-white/5 hover:bg-white/10 hover:shadow-[0_0_20px_rgba(255,255,255,0.05)]' : 'bg-slate-100 border-slate-200 hover:bg-white hover:shadow-[0_0_20px_rgba(0,0,0,0.05)]'}`}
+               >
+                  <div className="flex items-center justify-between w-full">
+                     <span className={`text-[9px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500 group-hover:text-slate-300 transition-colors' : 'text-slate-400 group-hover:text-slate-600 transition-colors'}`}>Destination Folder</span>
+                     <Icon name="external" className={`w-3 h-3 ${isDarkMode ? 'text-slate-500 group-hover:text-slate-300' : 'text-slate-400 group-hover:text-slate-600'}`} stroke={2} />
+                  </div>
                   <p className={`text-[11px] font-mono break-all font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                     {successData.path}
                   </p>
-               </div>
+               </button>
 
                <button 
                  onClick={() => setSuccessData(null)} 

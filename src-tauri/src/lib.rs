@@ -608,6 +608,294 @@ fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
 }
 
 #[tauri::command]
+async fn probe_video(app: AppHandle, input: String) -> Result<String, String> {
+    let input_path = Path::new(&input);
+    if !input_path.exists() { return Err("Input file not found".to_string()); }
+
+    let args = vec![
+        "-v".to_string(), "quiet".to_string(),
+        "-print_format".to_string(), "json".to_string(),
+        "-show_format".to_string(),
+        "-show_streams".to_string(),
+        input.clone(),
+    ];
+
+    let output = app.shell().sidecar("ffprobe")
+        .map_err(|e| format!("Failed to find ffprobe: {}", e))?
+        .args(args)
+        .output().await.map_err(|e| format!("Failed to run ffprobe: {}", e))?;
+
+    if output.status.success() {
+        Ok(String::from_utf8_lossy(&output.stdout).to_string())
+    } else {
+        Err(format!("ffprobe error: {}", String::from_utf8_lossy(&output.stderr)))
+    }
+}
+
+#[tauri::command]
+fn get_file_size(path: String) -> Result<u64, String> {
+    std::fs::metadata(path)
+        .map(|m| m.len())
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn compress_video_target_size(app: AppHandle, cache: State<'_, EncoderCache>, input: String, output: String, target_size_kb: f64, auto_gpu: bool) -> Result<(), String> {
+    let input_path = Path::new(&input);
+    if !input_path.exists() { return Err("Input file not found".to_string()); }
+
+    // First probe the video to get duration and audio bitrate
+    let probe_json_str = probe_video(app.clone(), input.clone()).await?;
+    let probe_data: serde_json::Value = serde_json::from_str(&probe_json_str).unwrap_or(serde_json::json!({}));
+    
+    let format = probe_data.get("format").and_then(|f| f.as_object());
+    let duration_str = format.and_then(|f| f.get("duration")).and_then(|d| d.as_str()).unwrap_or("0");
+    let duration: f64 = duration_str.parse().unwrap_or(0.0);
+    
+    if duration <= 0.0 {
+        return Err("Could not determine video duration".to_string());
+    }
+
+    // Default audio bitrate 128k (128 * 1024 / 1000 = 131 kbps approximately, let's use 128)
+    let audio_bitrate_kbps = 128.0; 
+    let mut target_video_bitrate_kbps = ((target_size_kb * 8.0) / duration) - audio_bitrate_kbps;
+    
+    // 5% safety margin for container overhead
+    target_video_bitrate_kbps = target_video_bitrate_kbps * 0.95;
+
+    if target_video_bitrate_kbps < 50.0 {
+        return Err("Target size is too small for this video length".to_string());
+    }
+
+    let bitrate_str = format!("{}k", target_video_bitrate_kbps.floor());
+
+    let mut selected_encoder = "libx265";
+    let mut use_two_pass = true;
+
+    if auto_gpu {
+        if is_encoder_supported(&app, &cache, "hevc_nvenc").await {
+            selected_encoder = "hevc_nvenc";
+            use_two_pass = false; // NVENC doesn't support 2-pass well in this context
+        } else if is_encoder_supported(&app, &cache, "hevc_videotoolbox").await {
+            selected_encoder = "hevc_videotoolbox";
+            use_two_pass = false;
+        } else if is_encoder_supported(&app, &cache, "hevc_qsv").await {
+            selected_encoder = "hevc_qsv";
+            use_two_pass = false;
+        } else if is_encoder_supported(&app, &cache, "hevc_amf").await {
+            selected_encoder = "hevc_amf";
+            use_two_pass = false;
+        }
+    }
+
+    let _ = app.emit("ffmpeg-progress", format!("Target bitrate: {}", bitrate_str));
+
+    if use_two_pass {
+        // Pass 1
+        let mut args1 = vec![
+            "-y".to_string(), "-i".to_string(), input.clone(),
+            "-c:v".to_string(), selected_encoder.to_string(),
+            "-b:v".to_string(), bitrate_str.clone(),
+            "-pass".to_string(), "1".to_string(),
+            "-an".to_string(),
+            "-f".to_string(), "mp4".to_string()
+        ];
+        #[cfg(target_os = "windows")]
+        args1.push("NUL".to_string());
+        #[cfg(not(target_os = "windows"))]
+        args1.push("/dev/null".to_string());
+
+        let sidecar_command1 = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(args1);
+        let (mut rx1, _) = sidecar_command1.spawn().map_err(|e| e.to_string())?;
+        
+        while let Some(event) = rx1.recv().await {
+            match event {
+                CommandEvent::Stderr(line_bytes) => {
+                    let line = String::from_utf8_lossy(&line_bytes);
+                    let _ = app.emit("ffmpeg-progress", format!("[Pass 1] {}", line));
+                }
+                CommandEvent::Terminated(payload) => {
+                    if let Some(code) = payload.code {
+                        if code != 0 { return Err(format!("Pass 1 failed (Code {})", code)); }
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        // Pass 2
+        let args2 = vec![
+            "-y".to_string(), "-i".to_string(), input.clone(),
+            "-c:v".to_string(), selected_encoder.to_string(),
+            "-b:v".to_string(), bitrate_str.clone(),
+            "-pass".to_string(), "2".to_string(),
+            "-c:a".to_string(), "aac".to_string(),
+            "-b:a".to_string(), "128k".to_string(),
+            output.clone()
+        ];
+
+        let sidecar_command2 = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(args2);
+        let (mut rx2, _) = sidecar_command2.spawn().map_err(|e| e.to_string())?;
+        
+        while let Some(event) = rx2.recv().await {
+            match event {
+                CommandEvent::Stderr(line_bytes) => {
+                    let line = String::from_utf8_lossy(&line_bytes);
+                    let _ = app.emit("ffmpeg-progress", format!("[Pass 2] {}", line));
+                }
+                CommandEvent::Terminated(payload) => {
+                    if let Some(code) = payload.code {
+                        if code != 0 { return Err(format!("Pass 2 failed (Code {})", code)); }
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        // Cleanup temp log files
+        let _ = std::fs::remove_file("ffmpeg2pass-0.log");
+        let _ = std::fs::remove_file("ffmpeg2pass-0.log.mbtree");
+
+    } else {
+        // Single pass with maxrate for GPU encoders
+        let args = vec![
+            "-y".to_string(), "-hwaccel".to_string(), "auto".to_string(),
+            "-i".to_string(), input.clone(),
+            "-c:v".to_string(), selected_encoder.to_string(),
+            "-b:v".to_string(), bitrate_str.clone(),
+            "-maxrate".to_string(), bitrate_str.clone(),
+            "-bufsize".to_string(), format!("{}k", target_video_bitrate_kbps.floor() * 2.0),
+            "-c:a".to_string(), "aac".to_string(),
+            "-b:a".to_string(), "128k".to_string(),
+            output.clone()
+        ];
+        
+        let sidecar_command = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(args);
+        let (mut rx, _) = sidecar_command.spawn().map_err(|e| e.to_string())?;
+        
+        while let Some(event) = rx.recv().await {
+            match event {
+                CommandEvent::Stderr(line_bytes) => {
+                    let line = String::from_utf8_lossy(&line_bytes);
+                    let _ = app.emit("ffmpeg-progress", line.to_string());
+                }
+                CommandEvent::Terminated(payload) => {
+                    if let Some(code) = payload.code {
+                        if code != 0 { return Err(format!("Single-pass GPU encode failed (Code {})", code)); }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+async fn compress_image_target_size(app: AppHandle, input: String, output: String, target_size_kb: f64, width: String, height: String) -> Result<(), String> {
+    let input_path = Path::new(&input);
+    if !input_path.exists() { return Err("Input file not found".to_string()); }
+
+    let ext = Path::new(&output).extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+    let is_jpg = ext == "jpg" || ext == "jpeg";
+    let is_webp = ext == "webp";
+    
+    if !is_jpg && !is_webp {
+        // We only do binary search properly for lossy formats like JPG or WEBP.
+        // If PNG, BMP, TIFF, we fallback to standard compression or WebP.
+        // For simplicity, we just do a regular compress if they didn't switch to a lossy format.
+        // (The frontend should guide them to choose JPG/WEBP for target size).
+        return Err(format!("Target size requires a lossy format like JPG or WebP. Please change output format."));
+    }
+
+    let mut min_q = if is_jpg { 2.0 } else { 1.0 }; 
+    let mut max_q = if is_jpg { 31.0 } else { 100.0 }; // For JPG, lower is better. For WEBP, higher is better.
+    let target_bytes = (target_size_kb * 1024.0) as u64;
+
+    let mut best_q = min_q;
+    let mut best_size_diff = u64::MAX;
+
+    // We'll do binary search
+    for _i in 0..8 {
+        let mid_q = (min_q + max_q) / 2.0;
+        
+        let mut args = vec!["-hwaccel".to_string(), "auto".to_string(), "-i".to_string(), input.clone()];
+        if width != "0" && !width.is_empty() {
+            let h = if height.is_empty() || height == "0" { "-1" } else { &height };
+            args.push("-vf".to_string());
+            args.push(format!("scale={}:{}", width, h));
+        }
+
+        if is_jpg {
+            args.push("-q:v".to_string()); args.push(mid_q.floor().to_string());
+        } else {
+            args.push("-q:v".to_string()); args.push(mid_q.floor().to_string());
+        }
+        
+        args.push("-y".to_string());
+        args.push(output.clone());
+
+        let sidecar_command = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(args);
+        let output_cmd = sidecar_command.output().await.map_err(|e| e.to_string())?;
+
+        if !output_cmd.status.success() {
+            continue;
+        }
+
+        let current_size = std::fs::metadata(&output).map(|m| m.len()).unwrap_or(0);
+        let diff = if current_size > target_bytes { current_size - target_bytes } else { target_bytes - current_size };
+
+        if current_size <= target_bytes && diff < best_size_diff {
+            best_q = mid_q;
+            best_size_diff = diff;
+        }
+
+        // Adjust search window
+        if current_size > target_bytes {
+            if is_jpg {
+                min_q = mid_q; // lower quality means higher q:v
+            } else {
+                max_q = mid_q; // lower quality means lower q:v
+            }
+        } else {
+            if is_jpg {
+                max_q = mid_q;
+            } else {
+                min_q = mid_q;
+            }
+        }
+        
+        let _ = app.emit("ffmpeg-progress", format!("Testing quality index: {}", mid_q.floor()));
+    }
+
+    // Final encode with best_q if we didn't just leave it at the last iteration
+    let mut args = vec!["-hwaccel".to_string(), "auto".to_string(), "-i".to_string(), input.clone()];
+    if width != "0" && !width.is_empty() {
+        let h = if height.is_empty() || height == "0" { "-1" } else { &height };
+        args.push("-vf".to_string());
+        args.push(format!("scale={}:{}", width, h));
+    }
+
+    if is_jpg {
+        args.push("-q:v".to_string()); args.push(best_q.floor().to_string());
+    } else {
+        args.push("-q:v".to_string()); args.push(best_q.floor().to_string());
+    }
+    args.push("-y".to_string());
+    args.push(output.clone());
+    let sidecar_command = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(args);
+    sidecar_command.output().await.map_err(|e| e.to_string())?;
+
+    let final_size = std::fs::metadata(&output).map(|m| m.len()).unwrap_or(0);
+    if final_size > target_bytes + (target_bytes / 10) { // 10% tolerance
+        return Err("Cannot compress to this target size without reducing dimensions further.".to_string());
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
 async fn compress_audio(app: AppHandle, input: String, output: String) -> Result<(), String> {
     let input_path = Path::new(&input);
     if !input_path.exists() { return Err("Input file not found".to_string()); }
@@ -660,7 +948,11 @@ pub fn run() {
             stop_job, 
             enhance_image,
             enhance_video,
-            read_file_bytes
+            read_file_bytes,
+            probe_video,
+            get_file_size,
+            compress_video_target_size,
+            compress_image_target_size
         ])
         .on_window_event(|_window, event| {
             if let WindowEvent::Destroyed = event {

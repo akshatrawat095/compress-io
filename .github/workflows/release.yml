@@ -22,8 +22,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: 'Compress I/O ${{ github.ref_name }}'
-          draft: false
-          prerelease: false
+          draft: true
+          prerelease: true
           body: |
             ## Compress-IO Update
             
