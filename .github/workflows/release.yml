@@ -111,7 +111,7 @@ jobs:
         if: matrix.platform == 'macos-15'
         run: |
           mkdir -p src-tauri/binaries
-          curl -L -o ffmpeg.zip https://www.osxexperts.net/ffmpeg7arm.zip
+          curl -L -o ffmpeg.zip https://evermeet.cx/ffmpeg/getrelease/zip
           unzip -o ffmpeg.zip
           find . -name "ffmpeg" -type f -not -path "./src-tauri/*" -exec mv {} src-tauri/binaries/ffmpeg-aarch64-apple-darwin \;
           chmod +x src-tauri/binaries/ffmpeg-aarch64-apple-darwin

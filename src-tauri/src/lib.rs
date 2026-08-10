@@ -809,8 +809,8 @@ async fn compress_image_target_size(app: AppHandle, input: String, output: Strin
         return Err(format!("Target size requires a lossy format like JPG or WebP. Please change output format."));
     }
 
-    let mut min_q = if is_jpg { 2.0 } else { 1.0 }; 
-    let mut max_q = if is_jpg { 31.0 } else { 100.0 }; // For JPG, lower is better. For WEBP, higher is better.
+    let mut min_q: f32 = if is_jpg { 2.0 } else { 1.0 }; 
+    let mut max_q: f32 = if is_jpg { 31.0 } else { 100.0 }; // For JPG, lower is better. For WEBP, higher is better.
     let target_bytes = (target_size_kb * 1024.0) as u64;
 
     let mut best_q = min_q;
