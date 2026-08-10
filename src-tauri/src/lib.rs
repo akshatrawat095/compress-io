@@ -608,28 +608,67 @@ fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
 }
 
 #[tauri::command]
+fn show_in_folder(path: String) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("explorer")
+            .args(["/select,", &path])
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .args(["-R", &path])
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let parent = std::path::Path::new(&path).parent().unwrap_or(std::path::Path::new(""));
+        std::process::Command::new("xdg-open")
+            .arg(parent)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
 async fn probe_video(app: AppHandle, input: String) -> Result<String, String> {
     let input_path = Path::new(&input);
     if !input_path.exists() { return Err("Input file not found".to_string()); }
 
-    let args = vec![
-        "-v".to_string(), "quiet".to_string(),
-        "-print_format".to_string(), "json".to_string(),
-        "-show_format".to_string(),
-        "-show_streams".to_string(),
-        input.clone(),
-    ];
-
-    let output = app.shell().sidecar("ffprobe")
-        .map_err(|e| format!("Failed to find ffprobe: {}", e))?
+    let args = vec!["-i".to_string(), input.clone()];
+    let output = app.shell().sidecar("ffmpeg")
+        .map_err(|e| format!("Failed to find ffmpeg: {}", e))?
         .args(args)
-        .output().await.map_err(|e| format!("Failed to run ffprobe: {}", e))?;
+        .output().await.map_err(|e| format!("Failed to run ffmpeg: {}", e))?;
 
-    if output.status.success() {
-        Ok(String::from_utf8_lossy(&output.stdout).to_string())
-    } else {
-        Err(format!("ffprobe error: {}", String::from_utf8_lossy(&output.stderr)))
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let mut duration_secs = 0.0;
+    
+    if let Some(duration_idx) = stderr.find("Duration: ") {
+        let after_duration = &stderr[duration_idx + 10..];
+        if let Some(comma_idx) = after_duration.find(",") {
+            let duration_str = after_duration[..comma_idx].trim();
+            let parts: Vec<&str> = duration_str.split(':').collect();
+            if parts.len() == 3 {
+                let h: f64 = parts[0].parse().unwrap_or(0.0);
+                let m: f64 = parts[1].parse().unwrap_or(0.0);
+                let s: f64 = parts[2].parse().unwrap_or(0.0);
+                duration_secs = h * 3600.0 + m * 60.0 + s;
+            }
+        }
     }
+
+    let mock_json = serde_json::json!({
+        "format": {
+            "duration": duration_secs.to_string()
+        }
+    });
+
+    Ok(serde_json::to_string(&mock_json).unwrap_or("{}".to_string()))
 }
 
 #[tauri::command]
@@ -698,7 +737,7 @@ async fn compress_video_target_size(app: AppHandle, cache: State<'_, EncoderCach
             "-b:v".to_string(), bitrate_str.clone(),
             "-pass".to_string(), "1".to_string(),
             "-an".to_string(),
-            "-f".to_string(), "mp4".to_string()
+            "-f".to_string(), "null".to_string()
         ];
         #[cfg(target_os = "windows")]
         args1.push("NUL".to_string());
@@ -708,15 +747,17 @@ async fn compress_video_target_size(app: AppHandle, cache: State<'_, EncoderCach
         let sidecar_command1 = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(args1);
         let (mut rx1, _) = sidecar_command1.spawn().map_err(|e| e.to_string())?;
         
+        let mut last_log_error1 = String::from("Unknown FFmpeg Error");
         while let Some(event) = rx1.recv().await {
             match event {
                 CommandEvent::Stderr(line_bytes) => {
                     let line = String::from_utf8_lossy(&line_bytes);
+                    last_log_error1 = line.to_string();
                     let _ = app.emit("ffmpeg-progress", format!("[Pass 1] {}", line));
                 }
                 CommandEvent::Terminated(payload) => {
                     if let Some(code) = payload.code {
-                        if code != 0 { return Err(format!("Pass 1 failed (Code {})", code)); }
+                        if code != 0 { return Err(format!("Pass 1 failed (Code {}): {}", code, last_log_error1)); }
                     }
                 }
                 _ => {}
@@ -737,15 +778,17 @@ async fn compress_video_target_size(app: AppHandle, cache: State<'_, EncoderCach
         let sidecar_command2 = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(args2);
         let (mut rx2, _) = sidecar_command2.spawn().map_err(|e| e.to_string())?;
         
+        let mut last_log_error2 = String::from("Unknown FFmpeg Error");
         while let Some(event) = rx2.recv().await {
             match event {
                 CommandEvent::Stderr(line_bytes) => {
                     let line = String::from_utf8_lossy(&line_bytes);
+                    last_log_error2 = line.to_string();
                     let _ = app.emit("ffmpeg-progress", format!("[Pass 2] {}", line));
                 }
                 CommandEvent::Terminated(payload) => {
                     if let Some(code) = payload.code {
-                        if code != 0 { return Err(format!("Pass 2 failed (Code {})", code)); }
+                        if code != 0 { return Err(format!("Pass 2 failed (Code {}): {}", code, last_log_error2)); }
                     }
                 }
                 _ => {}
@@ -773,15 +816,17 @@ async fn compress_video_target_size(app: AppHandle, cache: State<'_, EncoderCach
         let sidecar_command = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(args);
         let (mut rx, _) = sidecar_command.spawn().map_err(|e| e.to_string())?;
         
+        let mut last_log_error = String::from("Unknown FFmpeg Error");
         while let Some(event) = rx.recv().await {
             match event {
                 CommandEvent::Stderr(line_bytes) => {
                     let line = String::from_utf8_lossy(&line_bytes);
+                    last_log_error = line.to_string();
                     let _ = app.emit("ffmpeg-progress", line.to_string());
                 }
                 CommandEvent::Terminated(payload) => {
                     if let Some(code) = payload.code {
-                        if code != 0 { return Err(format!("Single-pass GPU encode failed (Code {})", code)); }
+                        if code != 0 { return Err(format!("GPU encode failed (Code {}): {}", code, last_log_error)); }
                     }
                 }
                 _ => {}
@@ -952,7 +997,8 @@ pub fn run() {
             probe_video,
             get_file_size,
             compress_video_target_size,
-            compress_image_target_size
+            compress_image_target_size,
+            show_in_folder
         ])
         .on_window_event(|_window, event| {
             if let WindowEvent::Destroyed = event {

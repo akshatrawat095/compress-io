@@ -27,7 +27,8 @@ export default function CinematicIntro({ onComplete, appMode }) {
       clearTimeout(sequenceTimer);
       clearTimeout(completeTimer);
     };
-  }, [onComplete]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const containerVariants = {
     initial: { 

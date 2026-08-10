@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence, useMotionTemplate, useMotionValue, useSpring } from 'framer-motion';
 import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
 import ReactMarkdown from 'react-markdown';
@@ -9,6 +9,26 @@ export default function UpdaterModal({ isDarkMode }) {
   const [update, setUpdate] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [progress, setProgress] = useState(0);
+  const cardRef = useRef(null);
+
+  // 🎇 Ultra-premium mouse-tracking spotlight effect
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  function handleMouseMove(event) {
+    if (!cardRef.current) return;
+    const { left, top } = cardRef.current.getBoundingClientRect();
+    mouseX.set(event.clientX - left);
+    mouseY.set(event.clientY - top);
+  }
+
+  // Smooth the spotlight movement for a buttery fluid feel
+  const springX = useSpring(mouseX, { stiffness: 500, damping: 50 });
+  const springY = useSpring(mouseY, { stiffness: 500, damping: 50 });
+
+  const spotlightColor = isDarkMode ? 'rgba(139, 92, 246, 0.15)' : 'rgba(139, 92, 246, 0.08)';
+  const spotlightGlow = useMotionTemplate`radial-gradient(400px circle at ${springX}px ${springY}px, ${spotlightColor}, transparent 80%)`;
+  const borderGlow = useMotionTemplate`radial-gradient(200px circle at ${springX}px ${springY}px, rgba(139, 92, 246, 0.4), transparent 80%)`;
 
   useEffect(() => {
     async function checkForUpdate() {
@@ -61,25 +81,34 @@ export default function UpdaterModal({ isDarkMode }) {
       {update && (
         <motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className={`fixed inset-0 z-[60000] backdrop-blur-xl flex flex-col p-6 items-center justify-center ${
+          animate={{ opacity: 1, backdropFilter: 'blur(20px)' }}
+          exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className={`fixed inset-0 z-[60000] flex flex-col p-6 items-center justify-center ${
             isDarkMode ? 'bg-slate-950/80' : 'bg-slate-900/40'
           }`}
+          style={{ perspective: 1200 }}
         >
           <motion.div
-            initial={{ y: 80, opacity: 0, scale: 0.9, rotateX: 20, filter: 'blur(20px)' }}
+            ref={cardRef}
+            onMouseMove={handleMouseMove}
+            initial={{ y: 30, opacity: 0, scale: 0.85, rotateX: 10, filter: 'blur(20px)' }}
             animate={{ y: 0, opacity: 1, scale: 1, rotateX: 0, filter: 'blur(0px)' }}
-            exit={{ y: 60, opacity: 0, scale: 0.9, rotateX: -15, filter: 'blur(15px)' }}
-            transition={{ type: "spring", stiffness: 250, damping: 25, mass: 1.2 }}
-            className={`relative max-w-md w-full p-8 rounded-[2rem] flex flex-col items-center text-center shadow-2xl border transition-colors will-change-transform ${
+            exit={{ y: -20, opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
+            transition={{ type: "spring", stiffness: 300, damping: 25, mass: 1.2 }}
+            className={`relative max-w-md w-full p-8 rounded-[2rem] flex flex-col items-center text-center shadow-2xl border transition-colors will-change-transform overflow-hidden ${
               isDarkMode
-                ? 'bg-slate-900 border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.8)]'
-                : 'bg-white border-slate-200 shadow-[0_0_80px_rgba(0,0,0,0.2)]'
+                ? 'bg-studio-obsidian border-white/10 shadow-[0_0_80px_rgba(139,92,246,0.15)]'
+                : 'bg-white/80 border-white shadow-[0_0_80px_rgba(139,92,246,0.1)]'
             }`}
-            style={{ perspective: 1000 }}
           >
-            {/* Animated Download Icon */}
+            {/* Dynamic Spotlight Layers */}
+            <motion.div className="pointer-events-none absolute inset-0 z-0" style={{ background: spotlightGlow }} />
+            <motion.div className="pointer-events-none absolute inset-0 z-0 opacity-50" style={{ borderImage: borderGlow }} />
+
+            {/* Content Container */}
+            <div className="relative z-10 flex flex-col items-center w-full">
+              {/* Animated Download Icon */}
             <motion.div
               animate={{ y: [0, -5, 0] }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
@@ -228,6 +257,8 @@ export default function UpdaterModal({ isDarkMode }) {
                 </button>
               </div>
             )}
+            
+            </div>
           </motion.div>
         </motion.div>
       )}

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open, save, message, ask } from "@tauri-apps/plugin-dialog";
-import { open as openShell } from "@tauri-apps/plugin-shell";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { motion, AnimatePresence, Reorder, useMotionValue, useSpring, useTransform, useAnimate, useDragControls, useMotionTemplate } from "framer-motion";
 import { listen } from "@tauri-apps/api/event"; 
 import MotionToggle from "./components/MotionToggle";
@@ -65,6 +65,8 @@ export default function App() {
   const [progress, setProgress] = useState(0);
   const [timeLeft, setTimeLeft] = useState(null);
   const totalDurationRef = useRef(0);
+  const compressStartTimeRef = useRef(0);
+  const lastEtaRef = useRef(0);
   const enhanceStartTimeRef = useRef(0);
   const totalPrepFrames = useRef(0);
   const isStoppingRef = useRef(false);
@@ -404,6 +406,8 @@ export default function App() {
               continue;
           }
         } else {
+          compressStartTimeRef.current = Date.now();
+          lastEtaRef.current = 0;
           setIsIndeterminate(false); setProgress(0); setTimeLeft("Starting...");
           if (targetSizeEnabled && targetSize) {
              let targetKb = parseFloat(targetSize);
@@ -435,6 +439,7 @@ export default function App() {
         console.error(e);
         setLogs("Error: " + e);
         setFileQueue(prev => prev.map((f, idx) => idx === i ? {...f, status: 'error'} : f));
+        await message(`Compression Failed:\n\n${e}`, { title: 'Process Error', kind: 'error' });
       }
     }
 
@@ -693,41 +698,52 @@ export default function App() {
         )}
       </AnimatePresence>
 
-       <AnimatePresence>
+        <AnimatePresence>
         {successData && (
           <motion.div 
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }} 
-            className={`fixed inset-0 z-[10000] flex items-center justify-center p-6 ${isDarkMode ? 'bg-slate-900/60' : 'bg-slate-900/10'}`}
+            className={`fixed inset-0 z-[10000] flex justify-center p-2 sm:p-4 overflow-y-auto ${isDarkMode ? 'bg-slate-900/80 backdrop-blur-md' : 'bg-slate-900/50 backdrop-blur-md'}`}
           >
             <motion.div 
                ref={successScope}
-               initial={{ y: 20, opacity: 0, scale: 0.98 }} 
+               initial={{ y: 30, opacity: 0, scale: 0.95 }} 
                animate={{ y: 0, opacity: 1, scale: 1 }}
-               exit={{ y: 15, opacity: 0, scale: 0.98 }}
-               transition={{ type: "spring", stiffness: 400, damping: 30 }}
-               className="relative max-w-lg w-full studio-glass p-12 flex flex-col items-center text-center shadow-studio-2xl border border-white/10"
+               exit={{ y: 20, opacity: 0, scale: 0.95 }}
+               transition={{ type: "spring", stiffness: 350, damping: 25 }}
+               className={`relative max-w-lg w-full my-auto studio-glass p-5 sm:p-6 flex flex-col items-center text-center shadow-studio-2xl border ${isDarkMode ? 'border-white/20' : 'border-white/60'} rounded-[2rem] overflow-hidden`}
             >
-               <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center mb-6 shadow-lg transition-all duration-700 ${
+               {/* Ambient Glow Background inside the card */}
+               <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+
+               <motion.div 
+                  initial={{ scale: 0, rotate: -45 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: "spring", delay: 0.1 }}
+                  className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 shadow-lg z-10 ${
                   appMode === 'compress' 
-                  ? 'bg-studio-violet shadow-studio-violet/30' 
-                  : 'bg-gradient-to-br from-studio-violet to-studio-rose shadow-studio-rose/30'
+                  ? 'bg-gradient-to-br from-indigo-500 to-purple-600 shadow-indigo-500/40' 
+                  : 'bg-gradient-to-br from-studio-violet to-studio-rose shadow-studio-rose/40'
                }`}>
                   <Icon 
                     name={appMode === 'compress' ? 'zap' : 'sparkles'} 
-                    className="w-10 h-10 text-white" 
+                    className="w-8 h-8 text-white" 
                     stroke={1.5} 
                   />
-               </div>
+               </motion.div>
                
-               <h2 className={`text-3xl font-black mb-2 italic uppercase tracking-widest ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+               <motion.h2 
+                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                 className={`text-2xl font-black mb-1 italic uppercase tracking-widest z-10 ${isDarkMode ? 'text-white drop-shadow-md' : 'text-slate-900 drop-shadow-sm'}`}>
                  {appMode === 'compress' ? 'Compressed' : 'Enhanced'}
-               </h2>
+               </motion.h2>
                
-               <p className={`mb-6 font-medium text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+               <motion.p 
+                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+                 className={`mb-4 font-semibold text-xs z-10 ${isDarkMode ? 'text-white/80' : 'text-slate-600'}`}>
                  {successData.count} {successData.count === 1 ? 'asset has' : 'assets have'} been successfully processed.
-               </p>
+               </motion.p>
 
                {successData.origSize && successData.compSize && appMode === 'compress' && (() => {
                   const savedBytes = successData.origSize - successData.compSize;
@@ -746,76 +762,81 @@ export default function App() {
                   const funMetric = metrics.filter(m => m.value >= 1).sort((a, b) => b.value - a.value)[0];
 
                   return (
-                    <div className="w-full mb-6">
-                       <div className={`p-5 rounded-2xl border text-left flex flex-col gap-3 relative overflow-hidden ${isDarkMode ? 'bg-black/40 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
-                          <AuraGrid />
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+                      className="w-full mb-4 z-10"
+                    >
+                       <div className={`p-4 rounded-[1.5rem] border text-left flex flex-col gap-2 relative overflow-hidden shadow-inner ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
                           
-                          <div className="relative z-10 flex justify-between items-center">
-                             <span className={`text-[10px] font-black uppercase tracking-widest opacity-50 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Original</span>
-                             <span className={`text-sm font-bold font-mono ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{origMB} MB</span>
+                          <div className="flex justify-between items-center">
+                             <span className={`text-[9px] font-black uppercase tracking-widest opacity-60 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Original</span>
+                             <span className={`text-xs font-bold font-mono ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{origMB} MB</span>
                           </div>
-                          <div className="relative z-10 flex justify-between items-center">
-                             <span className={`text-[10px] font-black uppercase tracking-widest opacity-50 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Compressed</span>
-                             <span className={`text-lg font-black font-mono text-studio-rose`}>
+                          <div className="flex justify-between items-center">
+                             <span className={`text-[9px] font-black uppercase tracking-widest opacity-60 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Compressed</span>
+                             <span className={`text-base font-black font-mono text-studio-rose drop-shadow-sm`}>
                                 <NumberFlow value={parseFloat(compMB)} format={{ minimumFractionDigits: 1, maximumFractionDigits: 1 }} /> MB
                              </span>
                           </div>
-                          <div className="relative z-10 flex justify-between items-center">
-                             <span className={`text-[10px] font-black uppercase tracking-widest opacity-50 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>You Saved</span>
-                             <span className={`text-sm font-bold font-mono ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                          <div className="flex justify-between items-center">
+                             <span className={`text-[9px] font-black uppercase tracking-widest opacity-60 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>You Saved</span>
+                             <span className={`text-xs font-bold font-mono ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
                                 <NumberFlow value={parseFloat(savedMB.toFixed(1))} /> MB ({savedPercent}%)
                              </span>
                           </div>
                           
-                          <div className="relative z-10 w-full h-1.5 bg-black/20 rounded-full mt-2 overflow-hidden">
+                          <div className="w-full h-1.5 bg-black/10 rounded-full mt-1 overflow-hidden relative">
                              <motion.div 
                                initial={{ width: "0%" }}
                                animate={{ width: `${savedPercent}%` }}
-                               transition={{ duration: 1.5, ease: "easeOut" }}
-                               className="h-full bg-studio-rose rounded-full"
+                               transition={{ duration: 1.2, ease: "easeOut", delay: 0.6 }}
+                               className="absolute left-0 top-0 h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.8)] rounded-full"
                              />
                           </div>
                        </div>
                        
                        {funMetric && (
-                          <div className={`mt-3 text-xs italic ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                             💡 You saved enough space for <span className="font-bold text-studio-rose"><NumberFlow value={funMetric.value} /> {funMetric.label}</span>.
-                          </div>
+                          <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.8, type: "spring" }}
+                            className={`mt-3 px-3 py-2 rounded-xl border flex items-center justify-center gap-2 shadow-sm ${isDarkMode ? 'bg-purple-500/10 border-purple-500/30 text-purple-300' : 'bg-purple-50 border-purple-200 text-purple-700'}`}>
+                             <motion.div animate={{ rotate: [0, 15, -15, 0] }} transition={{ repeat: Infinity, duration: 2, repeatDelay: 1 }}>
+                               <Icon name="lightbulb" className="w-4 h-4 flex-shrink-0 drop-shadow-md" />
+                             </motion.div>
+                             <span className="text-[11px] font-semibold leading-tight text-center">
+                                You saved enough space for <strong className="font-black text-xs"><NumberFlow value={funMetric.value} /> {funMetric.label}</strong>
+                             </span>
+                          </motion.div>
                        )}
-                    </div>
+                    </motion.div>
                   );
                })()}
 
-               <button
-                  onClick={async () => {
-                     try {
-                        const fullPath = successData.path;
-                        const lastSlashIndex = Math.max(fullPath.lastIndexOf('/'), fullPath.lastIndexOf('\\'));
-                        const folderPath = lastSlashIndex !== -1 ? fullPath.substring(0, lastSlashIndex) : fullPath;
-                        await openShell(folderPath);
-                     } catch (e) {
-                        console.error('Failed to open folder:', e);
-                     }
-                  }}
-                  className={`w-full mb-6 p-4 rounded-2xl border text-left flex flex-col gap-2 group cursor-pointer transition-all hover:scale-[1.02] hover:-translate-y-1 ${isDarkMode ? 'bg-white/5 border-white/5 hover:bg-white/10 hover:shadow-[0_0_20px_rgba(255,255,255,0.05)]' : 'bg-slate-100 border-slate-200 hover:bg-white hover:shadow-[0_0_20px_rgba(0,0,0,0.05)]'}`}
-               >
-                  <div className="flex items-center justify-between w-full">
-                     <span className={`text-[9px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500 group-hover:text-slate-300 transition-colors' : 'text-slate-400 group-hover:text-slate-600 transition-colors'}`}>Destination Folder</span>
-                     <Icon name="external" className={`w-3 h-3 ${isDarkMode ? 'text-slate-500 group-hover:text-slate-300' : 'text-slate-400 group-hover:text-slate-600'}`} stroke={2} />
-                  </div>
-                  <p className={`text-[11px] font-mono break-all font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                    {successData.path}
-                  </p>
-               </button>
-
-               <button 
-                 onClick={() => setSuccessData(null)} 
-                 className={`w-full py-5 rounded-2xl font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl ${
-                   isDarkMode ? 'bg-white text-slate-900 shadow-white/5' : 'bg-slate-900 text-white shadow-slate-900/20'
-                 }`}
-               >
-                 DONE
-               </button>
+               <div className="flex gap-3 w-full mt-2 z-10">
+                   <motion.button
+                      initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }}
+                      onClick={async () => {
+                         try {
+                            await invoke("show_in_folder", { path: successData.path });
+                         } catch (e) {
+                            console.error('Failed to open folder:', e);
+                         }
+                      }}
+                      className={`flex-1 p-3 rounded-[1rem] border flex items-center justify-center gap-2 group cursor-pointer transition-all hover:scale-[1.02] active:scale-95 ${isDarkMode ? 'bg-white/5 border-white/10 hover:bg-white/10' : 'bg-slate-50 border-slate-200 hover:bg-white hover:shadow-md'}`}
+                   >
+                      <Icon name="folder" className={`w-4 h-4 ${isDarkMode ? 'text-slate-400 group-hover:text-slate-200' : 'text-slate-500 group-hover:text-slate-700'}`} stroke={2} />
+                      <span className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Show File</span>
+                   </motion.button>
+    
+                   <motion.button 
+                     initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }}
+                     onClick={() => setSuccessData(null)} 
+                     className={`flex-1 p-3 rounded-[1rem] font-black uppercase tracking-widest text-[10px] flex items-center justify-center hover:scale-[1.02] active:scale-95 transition-all shadow-lg ${
+                       isDarkMode ? 'bg-white text-slate-900 hover:shadow-white/20' : 'bg-slate-900 text-white hover:shadow-slate-900/20'
+                     }`}
+                   >
+                     DONE
+                   </motion.button>
+               </div>
             </motion.div>
           </motion.div>
         )}

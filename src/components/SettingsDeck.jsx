@@ -239,10 +239,10 @@ const SettingsDeck = React.memo(({
                     {targetSizeEnabled && (
                        <motion.div 
                           layoutId="targetSizeBox"
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="flex flex-col gap-1.5 overflow-hidden mt-1"
+                          initial={{ height: 0, opacity: 0, overflow: "hidden" }}
+                          animate={{ height: "auto", opacity: 1, transitionEnd: { overflow: "visible" } }}
+                          exit={{ height: 0, opacity: 0, overflow: "hidden" }}
+                          className="flex flex-col gap-1.5 mt-1"
                        >
                           <div className={`p-2 rounded-xl border flex gap-1.5 items-center ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
                               <input 
@@ -302,10 +302,21 @@ const SettingsDeck = React.memo(({
                               </select>
                           </div>
 
-                          <div className="flex gap-1">
-                             <button onClick={() => {setTargetSize("8"); setTargetSizeUnit("MB");}} className={`flex-1 py-1 text-[8px] font-bold rounded-lg border transition-all ${isDarkMode ? 'border-white/10 text-slate-400 hover:text-white hover:border-white/30' : 'border-slate-200 text-slate-500 hover:bg-slate-100'}`}>Discord (8 MB)</button>
-                             <button onClick={() => {setTargetSize("25"); setTargetSizeUnit("MB");}} className={`flex-1 py-1 text-[8px] font-bold rounded-lg border transition-all ${isDarkMode ? 'border-white/10 text-slate-400 hover:text-white hover:border-white/30' : 'border-slate-200 text-slate-500 hover:bg-slate-100'}`}>Email (25 MB)</button>
-                          </div>
+                          <AnimatePresence>
+                             {useGpu && (
+                                <motion.div
+                                   initial={{ height: 0, opacity: 0 }}
+                                   animate={{ height: "auto", opacity: 1 }}
+                                   exit={{ height: 0, opacity: 0 }}
+                                   className="overflow-hidden mt-1"
+                                >
+                                   <div className={`p-2.5 rounded-xl text-[9px] font-medium leading-relaxed flex items-start gap-2 border ${isDarkMode ? 'bg-amber-500/10 border-amber-500/20 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
+                                      <Icon name="info" className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" stroke={2.5} />
+                                      <p><strong>GPU ACCURACY WARNING:</strong> Hardware acceleration reduces target size precision. Toggle GPU off for perfect precision.</p>
+                                   </div>
+                                </motion.div>
+                             )}
+                          </AnimatePresence>
                        </motion.div>
                     )}
                  </AnimatePresence>
