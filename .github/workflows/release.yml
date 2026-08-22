@@ -22,10 +22,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: 'Compress I/O ${{ github.ref_name }}'
-          draft: true
+          draft: false
           prerelease: true
           body: |
-            ## Compress-IO v0.1.49
+            ## Compress-IO v0.1.50
             
             High-performance media compression for images and videos — powered by FFmpeg, built with Tauri.
 
@@ -43,12 +43,18 @@ jobs:
             - **Dropdown Physics:** Rewrote the clipping boundaries of the dropdown menus using strict framer-motion overflow logic, allowing menus to beautifully float above the interface.
             - **Decluttered Interface:** Stripped out arbitrary, hardcoded size presets to provide a vastly cleaner, more professional manual input system.
 
-            | Feature | In v0.1.48 | Now in v0.1.49 |
+            | Feature | In v0.1.49 | Now in v0.1.50 |
             | :--- | :--- | :--- |
             | **Compression** | Best-effort size estimation | **Exact mathematical MB/GB targeting** |
             | **Success Card** | Large, required scrolling | **Compact, frictionless, and animated** |
             | **Folder Access** | Broken path navigation | **Native 1-Click Windows Explorer highlight** |
             | **GPU Awareness** | Silent precision loss | **Animated, intelligent slider warnings** |
+            | **Security & Dist** | Basic Defaults | **Strict CSP, Hardened IPC & Apple Notarization** |
+
+            ### 🔒 Advanced Security & Distribution
+            - **Strict CSP:** Implemented a rigorous Content Security Policy to eliminate XSS vulnerabilities.
+            - **Hardened IPC:** Removed dangerous frontend shell execution capabilities and secured file system reads against directory traversal.
+            - **macOS Notarization:** Integrated Apple code signing and notarization directly into the release pipeline to satisfy Gatekeeper.
 
             ---
 
@@ -131,11 +137,18 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+          # macOS Code Signing & Notarization
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
           releaseBody: |
-            ## Compress-IO v0.1.49
+            ## Compress-IO v0.1.50
             
             High-performance media compression for images and videos — powered by FFmpeg, built with Tauri.
 
@@ -153,12 +166,18 @@ jobs:
             - **Dropdown Physics:** Rewrote the clipping boundaries of the dropdown menus using strict framer-motion overflow logic, allowing menus to beautifully float above the interface.
             - **Decluttered Interface:** Stripped out arbitrary, hardcoded size presets to provide a vastly cleaner, more professional manual input system.
 
-            | Feature | In v0.1.48 | Now in v0.1.49 |
+            | Feature | In v0.1.49 | Now in v0.1.50 |
             | :--- | :--- | :--- |
             | **Compression** | Best-effort size estimation | **Exact mathematical MB/GB targeting** |
             | **Success Card** | Large, required scrolling | **Compact, frictionless, and animated** |
             | **Folder Access** | Broken path navigation | **Native 1-Click Windows Explorer highlight** |
             | **GPU Awareness** | Silent precision loss | **Animated, intelligent slider warnings** |
+            | **Security & Dist** | Basic Defaults | **Strict CSP, Hardened IPC & Apple Notarization** |
+
+            ### 🔒 Advanced Security & Distribution
+            - **Strict CSP:** Implemented a rigorous Content Security Policy to eliminate XSS vulnerabilities.
+            - **Hardened IPC:** Removed dangerous frontend shell execution capabilities and secured file system reads against directory traversal.
+            - **macOS Notarization:** Integrated Apple code signing and notarization directly into the release pipeline to satisfy Gatekeeper.
 
             ---
 

@@ -604,6 +604,15 @@ async fn compress_image(app: AppHandle, input: String, output: String, width: St
 
 #[tauri::command]
 fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
+    if path.contains("..") {
+        return Err("Security Error: Path traversal detected".to_string());
+    }
+    
+    let p = std::path::Path::new(&path);
+    if !p.is_absolute() {
+        return Err("Security Error: Only absolute paths are allowed".to_string());
+    }
+
     std::fs::read(path).map_err(|e| e.to_string())
 }
 
