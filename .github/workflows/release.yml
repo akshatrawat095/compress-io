@@ -25,36 +25,19 @@ jobs:
           draft: false
           prerelease: true
           body: |
-            ## Compress-IO v0.1.50
+            ## Compress-IO v0.1.51
             
             High-performance media compression for images and videos — powered by FFmpeg, built with Tauri.
 
             ---
 
-            ### 🎯 Precision Target Size Engine (2-Pass Encoding)
-            We engineered an entirely new algorithmic approach to media compression. You can now toggle "Target Size" to define an exact file size limit in MB or GB. Under the hood, this triggers a highly sophisticated 2-Pass FFmpeg encoding sequence. The first pass maps the complexity of the video, and the second pass mathematically allocates the bitrate to hit your exact size limit perfectly. This is an absolute game-changer for fitting high-quality videos into strict Discord (25MB) or Email (20MB) attachment limits without wasting a single kilobyte.
+            ### 🚀 Premium Installer & Security Update
+            This update brings a radically overhauled installation experience and critical security hardenings.
 
-            ### ✨ The Re-Engineered Success Card
-            We completely tore down and rebuilt the completion screen for maximum user experience. The Success Card has been vertically compressed into a much sleeker, modern UI element, meaning you no longer have to manually scroll down to see your results. We injected gorgeous framer-motion physics into the card for a premium feel. Furthermore, the "Show in Folder" integration has been entirely rewritten in Rust to flawlessly bridge the gap between the app and Windows Explorer, ensuring it highlights your freshly compressed file instantly.
-
-            ### 💎 Obsessive UI Polish & Intelligence
-            We scrutinize every single pixel of the user experience. In this update:
-            - **Intelligent Hardware Warnings:** Added a dynamic, sliding amber warning box that intelligently alerts you when GPU Acceleration might interfere with exact target size precision.
-            - **Dropdown Physics:** Rewrote the clipping boundaries of the dropdown menus using strict framer-motion overflow logic, allowing menus to beautifully float above the interface.
-            - **Decluttered Interface:** Stripped out arbitrary, hardcoded size presets to provide a vastly cleaner, more professional manual input system.
-
-            | Feature | In v0.1.49 | Now in v0.1.50 |
-            | :--- | :--- | :--- |
-            | **Compression** | Best-effort size estimation | **Exact mathematical MB/GB targeting** |
-            | **Success Card** | Large, required scrolling | **Compact, frictionless, and animated** |
-            | **Folder Access** | Broken path navigation | **Native 1-Click Windows Explorer highlight** |
-            | **GPU Awareness** | Silent precision loss | **Animated, intelligent slider warnings** |
-            | **Security & Dist** | Basic Defaults | **Strict CSP, Hardened IPC & Apple Notarization** |
-
-            ### 🔒 Advanced Security & Distribution
+            - **Premium Branded Installer:** Completely redesigned the Windows installer. It now features full custom branding (dark mode headers and sidebars) and installs silently to the user directory—bypassing annoying UAC Admin prompts entirely for a frictionless setup.
             - **Strict CSP:** Implemented a rigorous Content Security Policy to eliminate XSS vulnerabilities.
             - **Hardened IPC:** Removed dangerous frontend shell execution capabilities and secured file system reads against directory traversal.
-            - **macOS Notarization:** Integrated Apple code signing and notarization directly into the release pipeline to satisfy Gatekeeper.
+            - **Updater Bug Fix:** Fixed a React rendering bug that caused the "Intelligent Hardware Warnings" section in the Updater Modal to flicker rapidly during download progress updates.
 
             ---
 
@@ -141,36 +124,19 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
           releaseBody: |
-            ## Compress-IO v0.1.50
+            ## Compress-IO v0.1.51
             
             High-performance media compression for images and videos — powered by FFmpeg, built with Tauri.
 
             ---
 
-            ### 🎯 Precision Target Size Engine (2-Pass Encoding)
-            We engineered an entirely new algorithmic approach to media compression. You can now toggle "Target Size" to define an exact file size limit in MB or GB. Under the hood, this triggers a highly sophisticated 2-Pass FFmpeg encoding sequence. The first pass maps the complexity of the video, and the second pass mathematically allocates the bitrate to hit your exact size limit perfectly. This is an absolute game-changer for fitting high-quality videos into strict Discord (25MB) or Email (20MB) attachment limits without wasting a single kilobyte.
+            ### 🚀 Premium Installer & Security Update
+            This update brings a radically overhauled installation experience and critical security hardenings.
 
-            ### ✨ The Re-Engineered Success Card
-            We completely tore down and rebuilt the completion screen for maximum user experience. The Success Card has been vertically compressed into a much sleeker, modern UI element, meaning you no longer have to manually scroll down to see your results. We injected gorgeous framer-motion physics into the card for a premium feel. Furthermore, the "Show in Folder" integration has been entirely rewritten in Rust to flawlessly bridge the gap between the app and Windows Explorer, ensuring it highlights your freshly compressed file instantly.
-
-            ### 💎 Obsessive UI Polish & Intelligence
-            We scrutinize every single pixel of the user experience. In this update:
-            - **Intelligent Hardware Warnings:** Added a dynamic, sliding amber warning box that intelligently alerts you when GPU Acceleration might interfere with exact target size precision.
-            - **Dropdown Physics:** Rewrote the clipping boundaries of the dropdown menus using strict framer-motion overflow logic, allowing menus to beautifully float above the interface.
-            - **Decluttered Interface:** Stripped out arbitrary, hardcoded size presets to provide a vastly cleaner, more professional manual input system.
-
-            | Feature | In v0.1.49 | Now in v0.1.50 |
-            | :--- | :--- | :--- |
-            | **Compression** | Best-effort size estimation | **Exact mathematical MB/GB targeting** |
-            | **Success Card** | Large, required scrolling | **Compact, frictionless, and animated** |
-            | **Folder Access** | Broken path navigation | **Native 1-Click Windows Explorer highlight** |
-            | **GPU Awareness** | Silent precision loss | **Animated, intelligent slider warnings** |
-            | **Security & Dist** | Basic Defaults | **Strict CSP, Hardened IPC & Apple Notarization** |
-
-            ### 🔒 Advanced Security & Distribution
+            - **Premium Branded Installer:** Completely redesigned the Windows installer. It now features full custom branding (dark mode headers and sidebars) and installs silently to the user directory—bypassing annoying UAC Admin prompts entirely for a frictionless setup.
             - **Strict CSP:** Implemented a rigorous Content Security Policy to eliminate XSS vulnerabilities.
             - **Hardened IPC:** Removed dangerous frontend shell execution capabilities and secured file system reads against directory traversal.
-            - **macOS Notarization:** Integrated Apple code signing and notarization directly into the release pipeline to satisfy Gatekeeper.
+            - **Updater Bug Fix:** Fixed a React rendering bug that caused the "Intelligent Hardware Warnings" section in the Updater Modal to flicker rapidly during download progress updates.
 
             ---
 

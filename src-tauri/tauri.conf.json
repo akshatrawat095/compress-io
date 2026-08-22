@@ -1,6 +1,6 @@
 {
   "productName": "compress-io",
-  "version": "0.1.50",
+  "version": "0.1.51",
   "identifier": "com.compress.io",
   "build": {
     "frontendDist": "../dist",
@@ -36,7 +36,15 @@
     ],
     "externalBin": [
       "binaries/ffmpeg"
-    ]
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": false,
+        "headerImage": "icons/installer_header.bmp",
+        "sidebarImage": "icons/installer_sidebar.bmp"
+      }
+    }
   },
   "plugins": {
     "updater": {

@@ -141,7 +141,7 @@ export default function UpdaterModal({ isDarkMode }) {
                     visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { type: 'spring', stiffness: 300, damping: 20 } }
                   };
                   
-                  const mdComponents = {
+                  const mdComponents = React.useMemo(() => ({
                     h2: ({node, ...props}) => <motion.h2 variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className="text-lg font-black mb-2 tracking-wide will-change-transform" {...props} />,
                     h3: ({node, ...props}) => <motion.h3 variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className="text-md font-bold mt-5 mb-3 text-fuchsia-500 will-change-transform drop-shadow-[0_0_12px_rgba(217,70,239,0.4)]" {...props} />,
                     p: ({node, ...props}) => <motion.p variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className="mb-3 leading-relaxed opacity-90 will-change-transform" {...props} />,
@@ -151,7 +151,7 @@ export default function UpdaterModal({ isDarkMode }) {
                     td: ({node, ...props}) => <td className={`border-b py-2 px-3 opacity-80 ${isDarkMode ? 'border-white/5' : 'border-slate-100'}`} {...props} />,
                     hr: ({node, ...props}) => <motion.hr variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className={`my-5 will-change-transform ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`} {...props} />,
                     blockquote: ({node, ...props}) => <motion.blockquote variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className={`border-l-2 border-fuchsia-500 pl-3 py-1 my-3 text-xs italic will-change-transform ${isDarkMode ? 'bg-fuchsia-500/10' : 'bg-fuchsia-500/5'}`} {...props} />,
-                  };
+                  }), [isDarkMode]);
                   
                   if (secStart !== -1 && secEnd !== -1) {
                     const mainBody = bodyText.substring(0, secStart).trim();
