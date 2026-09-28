@@ -11,10 +11,9 @@
 
 If you discover a security vulnerability in Compress I/O, **please do NOT open a public GitHub issue.**
 
-Instead, report it privately via one of these methods:
+Instead, report it privately using **GitHub Security Advisories**:
 
-- **Email:** [akshatrawat095@gmail.com](mailto:akshatrawat095@gmail.com)
-- **GitHub Private Advisory:** Use the [Security Advisories](https://github.com/akshatrawat095/compress-io/security/advisories/new) tab to report privately.
+👉 [**Report a Vulnerability**](https://github.com/akshatrawat095/compress-io/security/advisories/new)
 
 ### What to include
 
@@ -32,7 +31,7 @@ Instead, report it privately via one of these methods:
 
 ## Scope
 
-Since Compress I/O is a **100% offline desktop app** (no cloud, no network calls), the primary security concerns are:
+Since Compress I/O is a **100% offline desktop app**, the primary security concerns are:
 
 - Malicious file input exploits (e.g., crafted media files targeting FFmpeg)
 - Tauri/Rust backend vulnerabilities
