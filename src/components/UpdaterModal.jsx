@@ -30,6 +30,24 @@ export default function UpdaterModal({ isDarkMode }) {
   const spotlightGlow = useMotionTemplate`radial-gradient(400px circle at ${springX}px ${springY}px, ${spotlightColor}, transparent 80%)`;
   const borderGlow = useMotionTemplate`radial-gradient(200px circle at ${springX}px ${springY}px, rgba(139, 92, 246, 0.4), transparent 80%)`;
 
+  // ── Moved to top-level to obey React's Rules of Hooks ──
+  const staggerVariants = React.useMemo(() => ({
+    hidden: { opacity: 0, y: 15, filter: 'blur(10px)' },
+    visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { type: 'spring', stiffness: 300, damping: 20 } }
+  }), []);
+
+  const mdComponents = React.useMemo(() => ({
+    h2: ({node, ...props}) => <motion.h2 variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className="text-lg font-black mb-2 tracking-wide will-change-transform" {...props} />,
+    h3: ({node, ...props}) => <motion.h3 variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className="text-md font-bold mt-5 mb-3 text-fuchsia-500 will-change-transform drop-shadow-[0_0_12px_rgba(217,70,239,0.4)]" {...props} />,
+    p: ({node, ...props}) => <motion.p variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className="mb-3 leading-relaxed opacity-90 will-change-transform" {...props} />,
+    table: ({node, ...props}) => <motion.div variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className="overflow-x-auto will-change-transform"><table className="w-full text-left border-collapse my-4 text-xs" {...props} /></motion.div>,
+    th: ({node, ...props}) => <th className={`border-b py-2 px-3 font-bold ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`} {...props} />,
+    tr: ({node, ...props}) => <motion.tr whileHover={{ scale: 1.02, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }} transition={{ type: 'spring', stiffness: 400 }} className="will-change-transform cursor-default" {...props} />,
+    td: ({node, ...props}) => <td className={`border-b py-2 px-3 opacity-80 ${isDarkMode ? 'border-white/5' : 'border-slate-100'}`} {...props} />,
+    hr: ({node, ...props}) => <motion.hr variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className={`my-5 will-change-transform ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`} {...props} />,
+    blockquote: ({node, ...props}) => <motion.blockquote variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className={`border-l-2 border-fuchsia-500 pl-3 py-1 my-3 text-xs italic will-change-transform ${isDarkMode ? 'bg-fuchsia-500/10' : 'bg-fuchsia-500/5'}`} {...props} />,
+  }), [isDarkMode, staggerVariants]);
+
   useEffect(() => {
     async function checkForUpdate() {
       try {
@@ -135,23 +153,6 @@ export default function UpdaterModal({ isDarkMode }) {
                   const bodyText = update.body;
                   const secStart = bodyText.indexOf('[SECURITY_AUDIT]');
                   const secEnd = bodyText.indexOf('[/SECURITY_AUDIT]');
-
-                  const staggerVariants = {
-                    hidden: { opacity: 0, y: 15, filter: 'blur(10px)' },
-                    visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { type: 'spring', stiffness: 300, damping: 20 } }
-                  };
-                  
-                  const mdComponents = React.useMemo(() => ({
-                    h2: ({node, ...props}) => <motion.h2 variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className="text-lg font-black mb-2 tracking-wide will-change-transform" {...props} />,
-                    h3: ({node, ...props}) => <motion.h3 variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className="text-md font-bold mt-5 mb-3 text-fuchsia-500 will-change-transform drop-shadow-[0_0_12px_rgba(217,70,239,0.4)]" {...props} />,
-                    p: ({node, ...props}) => <motion.p variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className="mb-3 leading-relaxed opacity-90 will-change-transform" {...props} />,
-                    table: ({node, ...props}) => <motion.div variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className="overflow-x-auto will-change-transform"><table className="w-full text-left border-collapse my-4 text-xs" {...props} /></motion.div>,
-                    th: ({node, ...props}) => <th className={`border-b py-2 px-3 font-bold ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`} {...props} />,
-                    tr: ({node, ...props}) => <motion.tr whileHover={{ scale: 1.02, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }} transition={{ type: 'spring', stiffness: 400 }} className="will-change-transform cursor-default" {...props} />,
-                    td: ({node, ...props}) => <td className={`border-b py-2 px-3 opacity-80 ${isDarkMode ? 'border-white/5' : 'border-slate-100'}`} {...props} />,
-                    hr: ({node, ...props}) => <motion.hr variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className={`my-5 will-change-transform ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`} {...props} />,
-                    blockquote: ({node, ...props}) => <motion.blockquote variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className={`border-l-2 border-fuchsia-500 pl-3 py-1 my-3 text-xs italic will-change-transform ${isDarkMode ? 'bg-fuchsia-500/10' : 'bg-fuchsia-500/5'}`} {...props} />,
-                  }), [isDarkMode]);
                   
                   if (secStart !== -1 && secEnd !== -1) {
                     const mainBody = bodyText.substring(0, secStart).trim();
