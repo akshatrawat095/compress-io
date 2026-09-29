@@ -1,6 +1,7 @@
 {
   "name": "universal-compressor",
   "private": true,
+  "license": "UNLICENSED",
   "version": "0.1.54",
   "type": "module",
   "scripts": {

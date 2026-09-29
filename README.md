@@ -9,7 +9,7 @@
   <p align="center">
     <a href="https://github.com/akshatrawat095/compress-io/releases/latest"><img alt="Latest Release" src="https://img.shields.io/github/v/release/akshatrawat095/compress-io?style=for-the-badge&color=8B5CF6&labelColor=1E293B" /></a>
     <a href="https://github.com/akshatrawat095/compress-io/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/akshatrawat095/compress-io/total?style=for-the-badge&color=EC4899&labelColor=1E293B" /></a>
-    <a href="https://github.com/akshatrawat095/compress-io/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/akshatrawat095/compress-io?style=for-the-badge&color=10B981&labelColor=1E293B" /></a>
+    <a href="https://github.com/akshatrawat095/compress-io/blob/main/LICENSE"><img alt="License: Proprietary" src="https://img.shields.io/badge/License-Proprietary_(All_Rights_Reserved)-E11D48?style=for-the-badge&labelColor=1E293B" /></a>
     <a href="https://github.com/akshatrawat095/compress-io"><img alt="Platform" src="https://img.shields.io/badge/Platform-Win%20%7C%20Mac%20%7C%20Linux-3B82F6?style=for-the-badge&labelColor=1E293B" /></a>
   </p>
 
