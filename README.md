@@ -113,6 +113,20 @@ Compress I/O is engineered for maximum performance and minimum footprint:
 ## 💡 Pro Tips & Troubleshooting
 
 <details>
+<summary><b>Mac says "Compress I/O is damaged and can't be opened. You should move it to the Trash."</b></summary>
+<br>
+This is Apple's <b>Gatekeeper</b> blocking the app because it was downloaded from the internet and is an open-source, unsigned application. The app is not actually damaged!
+<br><br>
+<b>To fix this permanently:</b>
+<ol>
+  <li>Move the app to your <code>Applications</code> folder.</li>
+  <li>Open the <b>Terminal</b> app on your Mac.</li>
+  <li>Paste this exact command and press Enter: <br><code>xattr -cr /Applications/Compress-IO.app</code></li>
+  <li>You can now open the app normally!</li>
+</ol>
+</details>
+
+<details>
 <summary><b>Why does my Task Manager show 0% GPU usage?</b></summary>
 <br>
 Windows Task Manager hides video encoding workloads by default. Open Task Manager, go to the Performance tab, select your GPU, and change one of the small graphs from "3D" to <b>"Video Encode"</b>. You will see the spike!
