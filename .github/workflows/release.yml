@@ -28,7 +28,7 @@ jobs:
           draft: false
           prerelease: true
           body: |
-            ## Compress-IO v0.1.54
+            ## Compress-IO v0.1.55
 
             High-performance media compression for images and videos — powered by FFmpeg, built with Tauri.
 
@@ -66,6 +66,8 @@ jobs:
           - platform: windows-latest
             args: '--features cpu'
           - platform: macos-15
+            args: '--features cpu'
+          - platform: macos-13
             args: '--features cpu'
           - platform: ubuntu-22.04
             args: '--features cpu'
@@ -114,7 +116,7 @@ jobs:
           chmod +x src-tauri/binaries/ffmpeg-x86_64-unknown-linux-gnu
 
       - name: Download FFmpeg (macOS)
-        if: matrix.platform == 'macos-15'
+        if: startsWith(matrix.platform, 'macos')
         run: |
           set -euo pipefail
           mkdir -p src-tauri/binaries
@@ -131,8 +133,16 @@ jobs:
             echo "::warning::FFmpeg checksum not yet pinned. Actual SHA256: $ACTUAL_SHA256 — pin this value in the workflow."
           fi
           unzip -o ffmpeg.zip
-          find . -name "ffmpeg" -type f -not -path "./src-tauri/*" -exec mv {} src-tauri/binaries/ffmpeg-aarch64-apple-darwin \;
-          chmod +x src-tauri/binaries/ffmpeg-aarch64-apple-darwin
+          
+          # Determine architecture suffix based on runner
+          if [ "${{ matrix.platform }}" = "macos-15" ]; then
+            ARCH_SUFFIX="aarch64-apple-darwin"
+          else
+            ARCH_SUFFIX="x86_64-apple-darwin"
+          fi
+          
+          find . -name "ffmpeg" -type f -not -path "./src-tauri/*" -exec mv {} src-tauri/binaries/ffmpeg-$ARCH_SUFFIX \;
+          chmod +x src-tauri/binaries/ffmpeg-$ARCH_SUFFIX
 
       - name: Download FFmpeg (Windows)
         if: matrix.platform == 'windows-latest'
@@ -171,7 +181,7 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
           releaseBody: |
-            ## Compress-IO v0.1.54
+            ## Compress-IO v0.1.55
 
             High-performance media compression for images and videos — powered by FFmpeg, built with Tauri.
 
