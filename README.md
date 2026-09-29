@@ -40,8 +40,8 @@ Most media tools fall into two traps: they either upload your private files to a
       Hit an exact target size (e.g., <i>"Make this exactly 8MB for Discord"</i>) or let the engine smartly shrink your files without noticeable quality loss. Uses native hardware acceleration to encode instantly.
     </td>
     <td width="50%" valign="top">
-      <h3>✨ AI "Turbo" Enhancement</h3>
-      Not just a compressor. Switch to <b>Enhance Mode</b> to upscale images and videos up to 4X, stabilize shaky footage, restore faces, and denoise dark scenes using local computational power.
+      <h3>🛡️ Hybrid Engine (Crash-Proof)</h3>
+      Uses a smart <b>"Hybrid Mode"</b> (CPU Reads → GPU Writes) to ensure maximum stability. Process massive 8K files or corrupted inputs without crashing the engine.
     </td>
   </tr>
   <tr>
