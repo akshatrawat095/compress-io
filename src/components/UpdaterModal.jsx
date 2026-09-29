@@ -48,6 +48,20 @@ export default function UpdaterModal({ isDarkMode }) {
     blockquote: ({node, ...props}) => <motion.blockquote variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className={`border-l-2 border-fuchsia-500 pl-3 py-1 my-3 text-xs italic will-change-transform ${isDarkMode ? 'bg-fuchsia-500/10' : 'bg-fuchsia-500/5'}`} {...props} />,
   }), [isDarkMode, staggerVariants]);
 
+  const afterBodyComponents = React.useMemo(() => ({
+    ...mdComponents,
+    p: ({node, ...props}) => (
+      <motion.p 
+        variants={staggerVariants} 
+        initial="hidden" 
+        whileInView="visible" 
+        viewport={{once:true, margin:"-10%"}} 
+        className="text-xs opacity-80 text-center will-change-transform" 
+        {...props} 
+      />
+    )
+  }), [mdComponents, staggerVariants]);
+
   useEffect(() => {
     async function checkForUpdate() {
       try {
@@ -202,7 +216,7 @@ export default function UpdaterModal({ isDarkMode }) {
 
                         {afterBody && (
                           <div className={`p-4 rounded-xl border font-medium overflow-hidden ${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
-                            <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ ...mdComponents, p: ({node, ...props}) => <motion.p variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true, margin:"-10%"}} className="text-xs opacity-80 text-center will-change-transform" {...props} /> }}>
+                            <ReactMarkdown remarkPlugins={[remarkGfm]} components={afterBodyComponents}>
                               {afterBody}
                             </ReactMarkdown>
                           </div>
