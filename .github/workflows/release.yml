@@ -28,7 +28,7 @@ jobs:
           draft: false
           prerelease: true
           body: |
-            ## Compress-IO v0.1.52
+            ## Compress-IO v0.1.53
 
             High-performance media compression for images and videos — powered by FFmpeg, built with Tauri.
 
@@ -171,7 +171,7 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
           releaseBody: |
-            ## Compress-IO v0.1.52
+            ## Compress-IO v0.1.53
 
             High-performance media compression for images and videos — powered by FFmpeg, built with Tauri.
 
