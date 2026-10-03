@@ -37,7 +37,7 @@ Most media tools fall into two traps: they either upload your private files to a
   <tr>
     <td width="50%" valign="top">
       <h3>🚀 Smart Compression Engine</h3>
-      Hit an exact target size (e.g., <i>"Make this exactly 8MB for Discord"</i>) or let the engine smartly shrink your files without noticeable quality loss. Uses native hardware acceleration to encode instantly.
+      Hit an exact target size (e.g., <i>"Make this exactly 8MB for Discord"</i>) using our binary search algorithm. Features a built-in <b>Smart Limit</b> that prevents artificial file padding—if a file reaches 100% maximum quality before hitting your target, the engine smartly stops early to save your storage space.
     </td>
     <td width="50%" valign="top">
       <h3>🛡️ Hybrid Engine (Crash-Proof)</h3>
@@ -50,9 +50,16 @@ Most media tools fall into two traps: they either upload your private files to a
       The app detects and utilizes your exact silicon. Fully supports <b>NVIDIA NVENC</b> (RTX/GTX), <b>AMD AMF</b> (Radeon), <b>Intel QuickSync</b>, and <b>Apple VideoToolbox</b> (M1/M2/M3).
     </td>
     <td width="50%" valign="top">
+      <h3>🛠️ Smart Diagnostics Engine</h3>
+      Hate cryptic errors? We parse every core processing failure (OOM, missing codecs, GPU crash) and display a beautiful, plain-English "Error Toast" with a clickable <b>Quick Fix</b> suggestion alongside the raw technical logs.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
       <h3>🔒 Enterprise-Grade Security</h3>
       <b>100% Offline.</b> Your files never leave your SSD. Our CI/CD pipeline is hardened with SHA256 FFmpeg checksum verification, immutable GitHub Actions, and 0 known npm vulnerabilities.
     </td>
+    <td width="50%" valign="top"></td>
   </tr>
 </table>
 
@@ -138,6 +145,14 @@ Windows Task Manager hides video encoding workloads by default. Open Task Manage
 <summary><b>My 4K video size didn't drop significantly. Why?</b></summary>
 <br>
 Compress I/O prioritizes <b>Playback Compatibility</b> and <b>Visual Fidelity</b>. If your input was already highly compressed using a modern codec (like H.265/HEVC), the app may safely transcode it to the universally supported H.264 (`yuv420p` pixel format) while maintaining quality. This makes it playable on older TVs and iPhones, but limits the file size reduction. Try using the <b>Target Size</b> feature if you need aggressive shrinking!
+</details>
+
+<details>
+<summary><b>I set a Target Size of 1MB, but the output is only 450KB. Where is the accuracy?</b></summary>
+<br>
+This is actually <b>by design</b>! When converting a lossless image (like PNG) to a lossy format (like WebP), the app uses a binary search algorithm to test different compression levels (from 1 to 100 quality). 
+<br><br>
+If your image is small in dimensions, even <b>100% maximum quality</b> might result in a file size that naturally sits below your target (e.g. 450KB). To hit exactly 1MB, the app would have to artificially inflate the file by adding fake padding or noise, which wastes space. Instead, the app smartly recognizes this and outputs the absolute best quality version possible without artificial padding. 
 </details>
 
 <br />

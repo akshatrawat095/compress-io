@@ -60,19 +60,19 @@ export default function ReleaseNotesModal({ onDismiss, isDarkMode }) {
 
   const features = [
     {
-      icon: "zap",
-      title: "Precision. Perfected.",
-      desc: "An entirely rebuilt Target Size engine. Compress media to your exact specifications without a single kilobyte of bloat."
+      icon: "terminal",
+      title: "Smart Diagnostics Engine.",
+      desc: "Hate cryptic errors? We now intercept every core processing failure (OOM, missing codecs) and display a beautiful, plain-English 'Error Toast' with clickable Quick Fixes."
     },
     {
-      icon: "folder",
-      title: "Frictionless Workflow.",
-      desc: "Flawless native integration. Instantly summon your freshly compressed files in Windows Explorer with a single click."
+      icon: "zap",
+      title: "Target Size: Smart Limit.",
+      desc: "An entirely rebuilt Target Size engine. If a file hits 100% maximum quality before reaching your target size, the engine smartly stops early to prevent artificial file bloat."
     },
     {
       icon: "sparkles",
       title: "Obsessive Polish.",
-      desc: "Every pixel scrutinized. From fluid dynamic dropdowns to intelligent hardware warnings, the interface is now smoother than ever."
+      desc: "Every pixel scrutinized. From fluid dynamic dropdowns to responsive layouts for tiny windows, the interface is now smoother than ever."
     }
   ];
 

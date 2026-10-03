@@ -264,6 +264,13 @@ const SettingsDeck = React.memo(({
                                 />
                               </div>
                           </div>
+                          
+                          <div className={`flex items-start gap-1.5 mt-0.5 px-1 opacity-70 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                             <Icon name="info" className="w-3 h-3 flex-shrink-0 mt-0.5" stroke={2.5} />
+                             <p className="text-[8px] font-medium leading-snug">
+                               <span className="font-bold">Smart Limit:</span> Stops at 100% quality to prevent artificial file padding.
+                             </p>
+                          </div>
 
                           {/* Format Selector */}
                           <div className={`p-2 rounded-xl border flex flex-col gap-1 ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>

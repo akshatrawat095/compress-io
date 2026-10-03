@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { open, save, message, ask } from "@tauri-apps/plugin-dialog";
+import { open, save, ask } from "@tauri-apps/plugin-dialog";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { motion, AnimatePresence, Reorder, useMotionValue, useSpring, useTransform, useAnimate, useDragControls, useMotionTemplate } from "framer-motion";
 import { listen } from "@tauri-apps/api/event"; 
@@ -18,6 +18,7 @@ import DashboardHeader from "./components/DashboardHeader";
 import SettingsDeck from "./components/SettingsDeck";
 import UpdaterModal from "./components/UpdaterModal";
 import AuraGrid from "./components/AuraGrid";
+import ErrorToast from "./components/ErrorToast";
 import NumberFlow from "@number-flow/react";
 
 export default function App() {
@@ -60,6 +61,7 @@ export default function App() {
   const [enhancedImgSrc, setEnhancedImgSrc] = useState(""); 
 
   const [successData, setSuccessData] = useState(null);
+  const [errorToast, setErrorToast] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
 
   const [progress, setProgress] = useState(0);
@@ -313,8 +315,9 @@ export default function App() {
 
     if (fileQueue.length === 1) {
       const file = fileQueue[0];
-      const targetExt = (appMode === "enhance" && file.type === "VID") ? "mp4" : 
+      let targetExt = (appMode === "enhance" && file.type === "VID") ? "mp4" : 
                         (appMode === "enhance" && file.type === "IMG") ? aiFormat : file.ext;
+      if (appMode === "compress" && targetSizeEnabled && targetFormat !== "same") targetExt = targetFormat;
       const prefix = appMode === "enhance" ? "enhanced" : "compressed";
       const baseName = file.name.substring(0, file.name.lastIndexOf('.'));
       
@@ -336,6 +339,8 @@ export default function App() {
 
     let finalPath = "";
     let localSuccessCount = 0; 
+    let thisRunOrig = 0;
+    let thisRunComp = 0;
 
     for (let i = 0; i < fileQueue.length; i++) {
       if (isStoppingRef.current) break;
@@ -433,31 +438,22 @@ export default function App() {
         try { compressedFileSize = await invoke("get_file_size", { path: finalPath }); } catch (e) {}
 
         localSuccessCount++; 
+        thisRunOrig += originalFileSize;
+        thisRunComp += compressedFileSize;
         setFileQueue(prev => prev.map((f, idx) => idx === i ? {...f, status: 'done', finalPath: finalPath, origSize: originalFileSize, compSize: compressedFileSize} : f));
 
       } catch (e) {
         console.error(e);
         setLogs("Error: " + e);
         setFileQueue(prev => prev.map((f, idx) => idx === i ? {...f, status: 'error'} : f));
-        await message(`Compression Failed:\n\n${e}`, { title: 'Process Error', kind: 'error' });
+        setErrorToast(String(e));
       }
     }
 
     setIsProcessing(false); setIsIndeterminate(false); setTimeLeft(null); setCurrentIndex(null);
     const savedLocation = fileQueue.length === 1 ? singleSavePath : outputFolder;
     if (localSuccessCount > 0) {
-        let totalOrig = 0;
-        let totalComp = 0;
-        setFileQueue(prev => {
-           prev.forEach(f => {
-              if (f.status === 'done' && f.origSize && f.compSize) {
-                 totalOrig += f.origSize;
-                 totalComp += f.compSize;
-              }
-           });
-           setSuccessData({ count: localSuccessCount, path: savedLocation, origSize: totalOrig, compSize: totalComp });
-           return prev;
-        });
+        setSuccessData({ count: localSuccessCount, path: savedLocation, origSize: thisRunOrig, compSize: thisRunComp });
     }
   }, [fileQueue, appMode, aiFormat, aiScale, aiVideoModel, aiFps, useGpu, denoise, stabilize, hyperDetail, faceRestore, tileSize, dimSettings, targetSizeEnabled, targetSize, targetSizeUnit, targetFormat, rawProgress, formatTime]);
 
@@ -478,7 +474,7 @@ export default function App() {
       setShowComparison(true);
     } catch (e) {
       console.error("Could not load preview:", e);
-      message("Could not load preview.", { title: "Error", kind: "error" });
+      setErrorToast("Could not load preview.");
     }
   }, [sliderX]);
 
@@ -749,8 +745,8 @@ export default function App() {
                   const savedBytes = successData.origSize - successData.compSize;
                   const savedMB = savedBytes / (1024 * 1024);
                   const savedPercent = Math.max(0, Math.round((savedBytes / successData.origSize) * 100));
-                  const origMB = (successData.origSize / (1024 * 1024)).toFixed(1);
-                  const compMB = (successData.compSize / (1024 * 1024)).toFixed(1);
+                  const origMB = (successData.origSize / (1024 * 1024)).toFixed(2);
+                  const compMB = (successData.compSize / (1024 * 1024)).toFixed(2);
 
                   const metrics = [
                     { value: Math.floor(savedMB / 3.5), label: "high-res photos" },
@@ -925,6 +921,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      <ErrorToast error={errorToast} isDarkMode={isDarkMode} onDismiss={() => setErrorToast(null)} />
       <UpdaterModal isDarkMode={isDarkMode} />
     </div>
   );
