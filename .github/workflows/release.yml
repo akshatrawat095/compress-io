@@ -28,27 +28,17 @@ jobs:
           draft: false
           prerelease: true
           body: |
-            ## Compress-IO v0.1.56
+            ## Compress-IO v0.1.57
 
             High-performance media compression for images and videos — powered by FFmpeg, built with Tauri.
 
             ---
 
-            ### 🔒 CI/CD Security Hardening
-            This release focuses on hardening the build pipeline and fixing vulnerable dependencies.
+            ### 🚀 What's New in 0.1.57
 
-            - **Pinned All GitHub Actions:** Every action is now locked to an immutable commit SHA, eliminating supply-chain tag-rewriting attacks.
-            - **FFmpeg Checksum Verification:** All FFmpeg binary downloads are now verified with SHA256 checksums before use.
-            - **Least-Privilege Permissions:** Workflow permissions scoped per-job instead of globally.
-            - **Reproducible Builds:** Switched from `npm install` to `npm ci` for lockfile-exact dependency resolution.
-            - **Dependency Audit:** Fixed 2 vulnerable npm packages — `browserslist` (High: OOM + prototype pollution) and `baseline-browser-mapping` (Moderate: DoS).
-
-            [SECURITY_AUDIT]
-            ✅ npm audit: 0 vulnerabilities (279 packages scanned)
-            ✅ GitHub Actions: 5/5 pinned to commit SHAs
-            ✅ FFmpeg downloads: SHA256 integrity checks enabled
-            ✅ Workflow permissions: least-privilege enforced
-            [/SECURITY_AUDIT]
+            - **Smart Diagnostics Engine:** We've completely overhauled error handling. Instead of cryptic backend crashes, the app now intercepts FFmpeg and system errors and displays beautiful, plain-English "Error Toasts" with actionable Quick Fixes.
+            - **Target Size - Smart Limit:** The target size binary-search algorithm has been upgraded. If an image hits 100% maximum quality before reaching your target size, the engine smartly stops early to prevent artificial file bloat. No fake padding, just true quality.
+            - **Obsessive UI Polish:** Word wrapping fixes, responsive modal scrolling for minimized windows, and buttery smooth layout transitions.
 
             ---
 
@@ -182,27 +172,17 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
           releaseBody: |
-            ## Compress-IO v0.1.56
+            ## Compress-IO v0.1.57
 
             High-performance media compression for images and videos — powered by FFmpeg, built with Tauri.
 
             ---
 
-            ### 🔒 CI/CD Security Hardening
-            This release focuses on hardening the build pipeline and fixing vulnerable dependencies.
+            ### 🚀 What's New in 0.1.57
 
-            - **Pinned All GitHub Actions:** Every action is now locked to an immutable commit SHA, eliminating supply-chain tag-rewriting attacks.
-            - **FFmpeg Checksum Verification:** All FFmpeg binary downloads are now verified with SHA256 checksums before use.
-            - **Least-Privilege Permissions:** Workflow permissions scoped per-job instead of globally.
-            - **Reproducible Builds:** Switched from `npm install` to `npm ci` for lockfile-exact dependency resolution.
-            - **Dependency Audit:** Fixed 2 vulnerable npm packages — `browserslist` (High: OOM + prototype pollution) and `baseline-browser-mapping` (Moderate: DoS).
-
-            [SECURITY_AUDIT]
-            ✅ npm audit: 0 vulnerabilities (279 packages scanned)
-            ✅ GitHub Actions: 5/5 pinned to commit SHAs
-            ✅ FFmpeg downloads: SHA256 integrity checks enabled
-            ✅ Workflow permissions: least-privilege enforced
-            [/SECURITY_AUDIT]
+            - **Smart Diagnostics Engine:** We've completely overhauled error handling. Instead of cryptic backend crashes, the app now intercepts FFmpeg and system errors and displays beautiful, plain-English "Error Toasts" with actionable Quick Fixes.
+            - **Target Size - Smart Limit:** The target size binary-search algorithm has been upgraded. If an image hits 100% maximum quality before reaching your target size, the engine smartly stops early to prevent artificial file bloat. No fake padding, just true quality.
+            - **Obsessive UI Polish:** Word wrapping fixes, responsive modal scrolling for minimized windows, and buttery smooth layout transitions.
 
             ---
 
