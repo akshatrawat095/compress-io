@@ -27,3 +27,22 @@ src-tauri/target
 src-tauri/binaries
 *.exe
 *.key
+
+# Build/debug artifacts
+*.tmp
+**/build_output.txt
+**/full_errors.txt
+**/test_output*.png
+**/help.txt
+
+# Throwaway scripts
+add_stop_btn.py
+final_fix.py
+fix_app.py
+fix_frontend.py
+restore_app.py
+
+# Misc
+~/
+*.mp4
+output.*
