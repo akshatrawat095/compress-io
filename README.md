@@ -169,5 +169,5 @@ Have a feature request? Found a bug? Just want to say hi?
 ---
 
 <div align="center">
-  <p>Built with 💜 by <b><a href="https://github.com/akshatrawat095">Akshat Rawat</a></b></p>
+  <p>Built with ❤️ by <b><a href="https://github.com/akshatrawat095">Akshat Rawat</a></b></p>
 </div>
