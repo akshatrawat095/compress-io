@@ -1,0 +1,44 @@
+# Dependabot configuration for automated dependency security and updates
+version: 2
+updates:
+  # 1. Monitor npm dependencies (Vite, React, Tailwind, Tauri JS plugins)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+      - "automated"
+
+  # 2. Monitor Rust dependencies in Tauri backend
+  - package-ecosystem: "cargo"
+    directory: "/src-tauri"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps-rust)"
+    labels:
+      - "dependencies"
+      - "rust"
+
+  # 3. Monitor GitHub Actions in workflow files
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "ci(actions)"
+    labels:
+      - "ci"
+      - "automated"
