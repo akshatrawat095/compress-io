@@ -142,20 +142,16 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p src-tauri/binaries
-          FFMPEG_URL="https://evermeet.cx/ffmpeg/getrelease/zip"
+          FFMPEG_URL="https://github.com/Tyrrrz/FFmpegBin/releases/download/9.0.2/ffmpeg-osx-arm64.zip"
           curl -L -o ffmpeg.zip "$FFMPEG_URL"
           # SECURITY: Verify the download checksum matches the expected value.
-          # Update this hash whenever you upgrade the FFmpeg build.
-          EXPECTED_SHA256="UPDATE_THIS_HASH_AFTER_FIRST_SUCCESSFUL_DOWNLOAD"
+          EXPECTED_SHA256="7d22a2893ccd761c3b4214165975e306d6c85c1de188f79f7e2723070c0006e4"
           ACTUAL_SHA256=$(shasum -a 256 ffmpeg.zip | awk '{print $1}')
           if [ "$EXPECTED_SHA256" != "UPDATE_THIS_HASH_AFTER_FIRST_SUCCESSFUL_DOWNLOAD" ] && [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
             echo "::error::FFmpeg checksum mismatch! Expected: $EXPECTED_SHA256, Got: $ACTUAL_SHA256"
             exit 1
-          else
-            echo "::warning::FFmpeg checksum not yet pinned. Actual SHA256: $ACTUAL_SHA256 — pin this value in the workflow."
           fi
           unzip -o ffmpeg.zip
-          
           find . -name "ffmpeg" -type f -not -path "./src-tauri/*" -exec mv {} src-tauri/binaries/ffmpeg-aarch64-apple-darwin \;
           chmod +x src-tauri/binaries/ffmpeg-aarch64-apple-darwin
 
