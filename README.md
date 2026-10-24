@@ -164,7 +164,9 @@ Have a feature request? Found a bug? Just want to say hi?
 <p align="center">
   <a href="https://x.com/AkshatRawat20"><img src="https://img.shields.io/badge/X_(Twitter)-000000?style=for-the-badge&logo=x&logoColor=white" /></a>
   <a href="https://instagram.com/error_on_first_tri3"><img src="https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white" /></a>
+  <a href="https://x.com/IshmeetSingh_1"><img src="https://img.shields.io/badge/X_(Twitter)-000000?style=for-the-badge&logo=x&logoColor=white" /></a>
 </p>
+
 
 ---
 
