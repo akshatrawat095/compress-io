@@ -28,17 +28,41 @@ jobs:
           draft: false
           prerelease: true
           body: |
-            ## Compress-IO v0.1.57
+            ## 🚀 Compress-IO v0.1.58
 
-            High-performance media compression for images and videos — powered by FFmpeg, built with Tauri.
+            > **Fast, private, local-first media compression** for images and videos — powered by FFmpeg & built with Tauri v2.
 
             ---
 
-            ### 🚀 What's New in 0.1.57
+            ### 🛡️ Security Hardening & Dependency Upgrades
+            This release resolves **2 upstream high-severity security vulnerabilities** and hardens both frontend dev tooling and build pipelines.
 
-            - **Smart Diagnostics Engine:** We've completely overhauled error handling. Instead of cryptic backend crashes, the app now intercepts FFmpeg and system errors and displays beautiful, plain-English "Error Toasts" with actionable Quick Fixes.
-            - **Target Size - Smart Limit:** The target size binary-search algorithm has been upgraded. If an image hits 100% maximum quality before reaching your target size, the engine smartly stops early to prevent artificial file bloat. No fake padding, just true quality.
-            - **Obsessive UI Polish:** Word wrapping fixes, responsive modal scrolling for minimized windows, and buttery smooth layout transitions.
+            #### 🔒 Vulnerability Fixes:
+            - **`vite` (Upgraded to `7.3.7` • High Severity)**
+              - Fixed arbitrary command execution vulnerability via CLI flag misinterpretation ([GHSA-r825-w8mm-5pxw](https://github.com/advisories/GHSA-r825-w8mm-5pxw))
+              - Fixed Windows `%` escaping omission in `launch-editor` ([GHSA-698v-4r3x-3vcv](https://github.com/advisories/GHSA-698v-4r3x-3vcv))
+              - Fixed Windows `fs.existsSync()` bypass in editor launching ([GHSA-587h-7wmj-h5pm](https://github.com/advisories/GHSA-587h-7wmj-h5pm))
+              - Fixed cross-origin script execution via custom middleware ([GHSA-9jrq-w75r-8gcw](https://github.com/advisories/GHSA-9jrq-w75r-8gcw))
+              - Enforced directory traversal boundaries for `server.fs.allow` ([GHSA-rq7h-c2jc-7f22](https://github.com/advisories/GHSA-rq7h-c2jc-7f22))
+            - **`source-map-js` (Upgraded to `1.2.2` • High Severity)**
+              - Fixed event-loop Denial of Service (DoS) triggered by crafted indexed source-map section offsets ([GHSA-68fv-2mgg-jv7q](https://github.com/advisories/GHSA-68fv-2mgg-jv7q))
+
+            ---
+
+            ### 🧹 Maintenance & Build Improvements
+            - **Zero Vulnerabilities:** Verified clean with 0 known vulnerabilities across all 200 dependencies (`npm audit`).
+            - **Repository Cleanup:** Stripped legacy debugging scripts, throwaway test files, and tightened ignore rules.
+            - **Cross-Platform Binaries:** Native bundles built for Windows (x64), macOS (Apple Silicon), and Linux (x86_64 & ARM64).
+
+            ---
+
+            ### 📋 Security & Compliance Matrix
+            | Check | Status | Details |
+            | :--- | :---: | :--- |
+            | **npm audit** | 🛡️ Clean | 0 vulnerabilities (200 packages audited) |
+            | **GitHub Actions** | 🔒 Pinned | All workflow actions locked to immutable commit SHAs |
+            | **FFmpeg Binaries** | 🔐 Verified | Automated download with SHA256 integrity checks |
+            | **Workflow Permissions** | ⚡ Minimal | Scoped per-job least-privilege tokens |
 
             ---
 
@@ -172,17 +196,41 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
           releaseBody: |
-            ## Compress-IO v0.1.57
+            ## 🚀 Compress-IO v0.1.58
 
-            High-performance media compression for images and videos — powered by FFmpeg, built with Tauri.
+            > **Fast, private, local-first media compression** for images and videos — powered by FFmpeg & built with Tauri v2.
 
             ---
 
-            ### 🚀 What's New in 0.1.57
+            ### 🛡️ Security Hardening & Dependency Upgrades
+            This release resolves **2 upstream high-severity security vulnerabilities** and hardens both frontend dev tooling and build pipelines.
 
-            - **Smart Diagnostics Engine:** We've completely overhauled error handling. Instead of cryptic backend crashes, the app now intercepts FFmpeg and system errors and displays beautiful, plain-English "Error Toasts" with actionable Quick Fixes.
-            - **Target Size - Smart Limit:** The target size binary-search algorithm has been upgraded. If an image hits 100% maximum quality before reaching your target size, the engine smartly stops early to prevent artificial file bloat. No fake padding, just true quality.
-            - **Obsessive UI Polish:** Word wrapping fixes, responsive modal scrolling for minimized windows, and buttery smooth layout transitions.
+            #### 🔒 Vulnerability Fixes:
+            - **`vite` (Upgraded to `7.3.7` • High Severity)**
+              - Fixed arbitrary command execution vulnerability via CLI flag misinterpretation ([GHSA-r825-w8mm-5pxw](https://github.com/advisories/GHSA-r825-w8mm-5pxw))
+              - Fixed Windows `%` escaping omission in `launch-editor` ([GHSA-698v-4r3x-3vcv](https://github.com/advisories/GHSA-698v-4r3x-3vcv))
+              - Fixed Windows `fs.existsSync()` bypass in editor launching ([GHSA-587h-7wmj-h5pm](https://github.com/advisories/GHSA-587h-7wmj-h5pm))
+              - Fixed cross-origin script execution via custom middleware ([GHSA-9jrq-w75r-8gcw](https://github.com/advisories/GHSA-9jrq-w75r-8gcw))
+              - Enforced directory traversal boundaries for `server.fs.allow` ([GHSA-rq7h-c2jc-7f22](https://github.com/advisories/GHSA-rq7h-c2jc-7f22))
+            - **`source-map-js` (Upgraded to `1.2.2` • High Severity)**
+              - Fixed event-loop Denial of Service (DoS) triggered by crafted indexed source-map section offsets ([GHSA-68fv-2mgg-jv7q](https://github.com/advisories/GHSA-68fv-2mgg-jv7q))
+
+            ---
+
+            ### 🧹 Maintenance & Build Improvements
+            - **Zero Vulnerabilities:** Verified clean with 0 known vulnerabilities across all 200 dependencies (`npm audit`).
+            - **Repository Cleanup:** Stripped legacy debugging scripts, throwaway test files, and tightened ignore rules.
+            - **Cross-Platform Binaries:** Native bundles built for Windows (x64), macOS (Apple Silicon), and Linux (x86_64 & ARM64).
+
+            ---
+
+            ### 📋 Security & Compliance Matrix
+            | Check | Status | Details |
+            | :--- | :---: | :--- |
+            | **npm audit** | 🛡️ Clean | 0 vulnerabilities (200 packages audited) |
+            | **GitHub Actions** | 🔒 Pinned | All workflow actions locked to immutable commit SHAs |
+            | **FFmpeg Binaries** | 🔐 Verified | Automated download with SHA256 integrity checks |
+            | **Workflow Permissions** | ⚡ Minimal | Scoped per-job least-privilege tokens |
 
             ---
 

@@ -2,7 +2,7 @@
   "name": "universal-compressor",
   "private": true,
   "license": "UNLICENSED",
-  "version": "0.1.57",
+  "version": "0.1.58",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -35,6 +35,6 @@
     "autoprefixer": "^10.4.27",
     "postcss": "^8.5.8",
     "tailwindcss": "^4.2.2",
-    "vite": "^7.0.4"
+    "vite": "^7.3.7"
   }
 }
