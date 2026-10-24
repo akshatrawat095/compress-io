@@ -1,7 +1,7 @@
-# Dependabot configuration for automated dependency security and updates
+# Dependabot configuration for grouped, non-breaking dependency updates
 version: 2
 updates:
-  # 1. Monitor npm dependencies (Vite, React, Tailwind, Tauri JS plugins)
+  # 1. npm dependencies (Frontend & build tooling)
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
@@ -9,14 +9,26 @@ updates:
       day: "monday"
       time: "09:00"
       timezone: "Etc/UTC"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
     commit-message:
       prefix: "chore(deps)"
     labels:
       - "dependencies"
       - "automated"
+    # Group all non-breaking minor and patch updates into a single neat PR
+    groups:
+      npm-minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    # Ignore breaking major version jumps (e.g. Vite 7 -> 8) to avoid broken builds
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
-  # 2. Monitor Rust dependencies in Tauri backend
+  # 2. Rust dependencies in Tauri backend
   - package-ecosystem: "cargo"
     directory: "/src-tauri"
     schedule:
@@ -24,21 +36,36 @@ updates:
       day: "monday"
       time: "09:00"
       timezone: "Etc/UTC"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
     commit-message:
       prefix: "chore(deps-rust)"
     labels:
       - "dependencies"
       - "rust"
+    # Group all non-breaking minor and patch Rust updates into a single neat PR
+    groups:
+      rust-minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
-  # 3. Monitor GitHub Actions in workflow files
+  # 3. GitHub Actions in workflow files
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "monthly"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 2
     commit-message:
       prefix: "ci(actions)"
     labels:
       - "ci"
       - "automated"
+    groups:
+      actions:
+        patterns:
+          - "*"
