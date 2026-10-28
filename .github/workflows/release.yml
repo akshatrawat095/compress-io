@@ -208,19 +208,43 @@ jobs:
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           releaseBody: |
-            ### 🚀 Compress I/O ${{ github.ref_name }}
+            ## 🚀 Compress I/O ${{ github.ref_name }}
 
-            Fast, private, local-first media compression powered by FFmpeg & built with Tauri v2.
+            > **Fast, private, local-first media compression** for images and videos — powered by FFmpeg & built with Tauri v2.
 
-            [SECURITY_AUDIT]
-            ✓ Engine Sandboxing: FFmpeg protocol whitelisted to file,crypto,data,pipe
-            ✓ Sigstore Attestations: SLSA Level 3 cryptographic provenance certificates
-            ✓ SPDX SBOM: Full machine-readable dependency inventory included
-            ✓ Runner Hardening: StepSecurity eBPF kernel network egress monitoring
-            ✓ Zero Known CVEs: All dependencies audited against security advisories
-            [/SECURITY_AUDIT]
+            ---
 
-            Enjoy safer, private, and lightning-fast offline compression!
+            ### ✨ Highlights & Security Hardening
+            - **Native Engine Sandboxing:** Hardened FFmpeg sidecar processes with strict protocol whitelisting (`file,crypto,data,pipe`) to disarm malicious media files and prevent remote inclusion / SSRF attacks.
+            - **Sigstore Cryptographic Attestations:** All release binaries now carry tamper-proof provenance certificates issued via GitHub OIDC & Sigstore.
+            - **Software Bill of Materials (SBOM):** Standard machine-readable `compress-io-sbom.spdx.json` inventory attached directly to this release.
+            - **Runner Hardening:** Build workflows protected by StepSecurity eBPF runtime monitoring against supply chain exfiltration.
+            - **Zero Upstream Vulnerabilities:** Verified clean across all npm dependencies and Rust crates.
+
+            ---
+
+            ### 🔐 Verify Binary Authenticity
+            You can verify that any downloaded binary was built directly from our GitHub Actions pipeline and hasn't been modified:
+
+            ```bash
+            gh attestation verify <downloaded-binary> -R ${{ github.repository }}
+            ```
+
+            ---
+
+            ### 📋 Security & Compliance Matrix
+            | Layer | Security Standard | Status |
+            | :--- | :--- | :---: |
+            | **Build Provenance** | Sigstore Cryptographic Attestation | 🔏 SLSA Level 3 |
+            | **Transparency** | Software Bill of Materials (SPDX JSON) | 📜 Included |
+            | **CI Pipeline** | StepSecurity Kernel Egress Monitoring | 🛡️ Protected |
+            | **Engine Sandbox** | FFmpeg Protocol Whitelist (`file,crypto,data,pipe`) | 🔐 Hardened |
+            | **Dependencies** | Automated `npm audit` + `cargo audit` in CI | 🛡️ 0 Known CVEs |
+            | **Workflows** | Immutable 40-Character Commit SHA Pinning | 🔒 Enforced |
+
+            ---
+
+            Built with ❤️ using Tauri v2 + React.
           args: ${{ matrix.args }}
 
       # 🛡️ SECURITY: Cryptographic Sigstore provenance attestation for compiled installer bundles
