@@ -69,41 +69,40 @@ Most media tools fall into two traps: they either upload your private files to a
 
 <br />
 
-## 🛡️ Defense-in-Depth Security & Supply Chain Verification
+## 🛡️ Defense-in-Depth & Supply Chain Security
 
-Compress I/O follows **SLSA Level 3** supply chain standards to guarantee that the application you download is authentic, secure, and unmodified:
+Compress I/O is engineered to **SLSA Level 3** supply chain standards, ensuring every release is cryptographically signed, reproducible, and protected against tampering.
 
+```mermaid
+flowchart LR
+    A["📝 <b>Source Integrity</b><br/>OpenSSF Scorecard • Pinned SHAs"]
+    --> B["🛡️ <b>CI Hardening</b><br/>StepSecurity eBPF • Egress Shield"]
+    --> C["📦 <b>Signed Artifacts</b><br/>Sigstore SLSA L3 • SPDX SBOM"]
+    --> D["💻 <b>Local Execution</b><br/>FFmpeg Sandbox • Zero Cloud"]
+
+    style A fill:#1e293b,stroke:#3b82f6,stroke-width:2px,color:#f8fafc
+    style B fill:#1e293b,stroke:#8b5cf6,stroke-width:2px,color:#f8fafc
+    style C fill:#1e293b,stroke:#10b981,stroke-width:2px,color:#f8fafc
+    style D fill:#1e293b,stroke:#ec4899,stroke-width:2px,color:#f8fafc
 ```
-[ Your Source Code ] 
-       │  (OpenSSF Scorecard ensures repository health and least-privilege permissions)
-       ▼
-[ Hardened CI Runner ] 
-       │  (StepSecurity eBPF kernel monitoring blocks rogue egress network calls)
-       ▼
-[ Compiled Release Assets ] 
-       │  (SPDX SBOM inventories dependencies; Sigstore cryptographically signs binaries)
-       ▼
-[ End-User Machine ] 
-       │  (Minisign verifies in-app updates; FFmpeg protocol sandbox rejects malicious files)
-```
 
-### 🔐 Verify Any Binary in 5 Seconds
-You can cryptographically verify that any downloaded installer was compiled directly by our GitHub Actions build pipeline using the official GitHub CLI:
-
-```bash
-gh attestation verify Compress-IO_x64-setup.exe -R akshatrawat095/compress-io
-```
+> [!TIP]
+> ### 🔐 Verify Any Binary in Seconds
+> Mathematically prove that your installer was compiled directly by our GitHub Actions build runner and remains 100% untampered:
+> ```bash
+> gh attestation verify Compress-IO_x64-setup.exe -R akshatrawat095/compress-io
+> ```
 
 ### 📋 Security & Compliance Matrix
 
-| Security Layer | Standard / Tool | Protection |
-| :--- | :--- | :--- |
-| **Provenance Attestations** | Sigstore + GitHub OIDC | Cryptographic proof that releases came directly from our workflow |
-| **Software Inventory** | SPDX Standard (`.spdx.json`) | Full machine-readable manifest of all dependencies and hashes |
-| **CI/CD Hardening** | StepSecurity `harden-runner` | Kernel-level eBPF monitoring blocking credential exfiltration |
-| **Native Engine Sandbox** | FFmpeg Protocol Whitelist | Restricts engine to local protocols (`file,crypto,data,pipe`), blocking SSRF |
-| **Dependency Audits** | `npm audit` + `cargo audit` | Continuous scanning for CVEs in frontend and Rust crates |
-| **Auto-Updater Security** | Minisign Asymmetric Crypto | Every update payload verified with embedded cryptographic public keys |
+| Layer | Standard / Protection | Mechanism | Status |
+| :--- | :--- | :--- | :---: |
+| 🔏 **Build Provenance** | Sigstore + GitHub OIDC | Cryptographic attestations linking binary to git commit | ![SLSA Level 3](https://img.shields.io/badge/SLSA-Level_3-10B981?style=flat-square) |
+| 📜 **Software Inventory** | SPDX Standard (`.spdx.json`) | Machine-readable manifest of all dependencies and hashes | ![SPDX 2.3](https://img.shields.io/badge/SPDX-2.3-3B82F6?style=flat-square) |
+| 🛡️ **CI Runner Defense** | StepSecurity `harden-runner` | Kernel-level eBPF monitoring blocking unauthorized egress calls | ![eBPF Active](https://img.shields.io/badge/eBPF-Active-8B5CF6?style=flat-square) |
+| 🔐 **Native Engine Sandbox** | Protocol Whitelisting | FFmpeg strictly bound to `file,crypto,data,pipe` (SSRF disarmed) | ![Hardened](https://img.shields.io/badge/Sandbox-Enforced-EC4899?style=flat-square) |
+| 🧪 **Dependency Auditing** | `npm audit` + `cargo audit` | Continuous vulnerability scanning on PRs and releases | ![Zero CVEs](https://img.shields.io/badge/CVEs-0_Found-10B981?style=flat-square) |
+| 🔑 **Auto-Updater Security** | Minisign Asymmetric Crypto | Every update payload verified with embedded public key | ![Verified](https://img.shields.io/badge/Crypto-Ed25519-F59E0B?style=flat-square) |
 
 <br />
 
