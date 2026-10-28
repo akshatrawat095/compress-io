@@ -207,6 +207,20 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
+          releaseBody: |
+            ### 🚀 Compress I/O ${{ github.ref_name }}
+
+            Fast, private, local-first media compression powered by FFmpeg & built with Tauri v2.
+
+            [SECURITY_AUDIT]
+            ✓ Engine Sandboxing: FFmpeg protocol whitelisted to file,crypto,data,pipe
+            ✓ Sigstore Attestations: SLSA Level 3 cryptographic provenance certificates
+            ✓ SPDX SBOM: Full machine-readable dependency inventory included
+            ✓ Runner Hardening: StepSecurity eBPF kernel network egress monitoring
+            ✓ Zero Known CVEs: All dependencies audited against security advisories
+            [/SECURITY_AUDIT]
+
+            Enjoy safer, private, and lightning-fast offline compression!
           args: ${{ matrix.args }}
 
       # 🛡️ SECURITY: Cryptographic Sigstore provenance attestation for compiled installer bundles
