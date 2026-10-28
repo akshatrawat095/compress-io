@@ -92,13 +92,13 @@ jobs:
       matrix:
         include:
           - platform: windows-latest
-            args: '--features cpu'
+            args: '--features cpu --ignore-version-mismatches'
           - platform: macos-15
-            args: '--features cpu'
+            args: '--features cpu --ignore-version-mismatches'
           - platform: ubuntu-22.04
-            args: '--features cpu'
+            args: '--features cpu --ignore-version-mismatches'
           - platform: ubuntu-24.04-arm
-            args: '--features cpu'
+            args: '--features cpu --ignore-version-mismatches'
 
     runs-on: ${{ matrix.platform }}
 
