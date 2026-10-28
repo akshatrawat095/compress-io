@@ -7,6 +7,9 @@ use std::sync::Mutex;
 use std::collections::HashMap;
 
 
+// 🛡️ SECURITY: Restrict FFmpeg to safe local protocols only (blocks network, SSRF & protocol injection)
+const SAFE_PROTOCOLS: &str = "file,crypto,data,pipe";
+
 struct EncoderCache(Mutex<HashMap<String, bool>>);
 
 // --- DIAGNOSTIC HELPER: Checks and PRINTS GPU status ---
@@ -220,7 +223,11 @@ async fn enhance_video(
     let _ = app.emit("enhance-progress", "Analyzing video stream...");
 
     // 1. Probe Metadata (FPS & Estimating Total Frames)
-    let probe_cmd = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(vec!["-hwaccel", "auto", "-i", &input]);
+    let probe_cmd = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(vec![
+        "-hwaccel", "auto",
+        "-protocol_whitelist", SAFE_PROTOCOLS,
+        "-i", &input
+    ]);
     let probe_out = probe_cmd.output().await.map_err(|e| e.to_string())?;
     let probe_str = String::from_utf8_lossy(&probe_out.stderr);
     
@@ -252,7 +259,7 @@ async fn enhance_video(
     // 2. Extract Audio
     let _ = app.emit("enhance-progress", "Separating audio track...");
     let audio_cmd = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(vec![
-        "-y", "-hwaccel", "auto", "-i", &input, "-vn", "-c:a", "copy", audio_path.to_str().unwrap()
+        "-y", "-hwaccel", "auto", "-protocol_whitelist", SAFE_PROTOCOLS, "-i", &input, "-vn", "-c:a", "copy", audio_path.to_str().unwrap()
     ]);
     let audio_status = audio_cmd.output().await.map_err(|e| e.to_string())?;
     let has_audio = audio_path.exists() && audio_status.status.success();
@@ -265,7 +272,7 @@ async fn enhance_video(
     if stabilize {
         let trf_path = temp_dir_path.join("transform.trf").to_str().unwrap().replace("\\", "/");
         let stab_cmd = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(vec![
-            "-y", "-hwaccel", "auto", "-i", &input,
+            "-y", "-hwaccel", "auto", "-protocol_whitelist", SAFE_PROTOCOLS, "-i", &input,
             "-vf", &format!("vidstabdetect=stepsize=32:shakiness=10:accuracy=10:result={}", trf_path),
             "-f", "null", "-"
         ]);
@@ -277,7 +284,7 @@ async fn enhance_video(
     }
 
     let frames_cmd = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(vec![
-        "-y", "-hwaccel", "auto", "-i", &input, 
+        "-y", "-hwaccel", "auto", "-protocol_whitelist", SAFE_PROTOCOLS, "-i", &input, 
         "-threads", "4", 
         "-vf", &vf_chain, 
         "-progress", "pipe:1", 
@@ -506,6 +513,7 @@ async fn compress_video(app: AppHandle, cache: State<'_, EncoderCache>, input: S
         },
         "gif" => {
              let args = vec![
+                 "-protocol_whitelist".to_string(), SAFE_PROTOCOLS.to_string(),
                  "-i".to_string(), input.clone(),
                  "-filter_complex".to_string(), "fps=15,scale=480:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse".to_string(),
                  "-y".to_string(), output.clone()
@@ -527,6 +535,8 @@ async fn compress_video(app: AppHandle, cache: State<'_, EncoderCache>, input: S
     let mut args = vec![];
     args.push("-hwaccel".to_string());
     args.push("auto".to_string());
+    args.push("-protocol_whitelist".to_string());
+    args.push(SAFE_PROTOCOLS.to_string());
     args.push("-i".to_string());
     args.push(input.clone());
     args.push("-c:v".to_string());
@@ -568,7 +578,7 @@ async fn compress_video(app: AppHandle, cache: State<'_, EncoderCache>, input: S
 async fn compress_image(app: AppHandle, input: String, output: String, width: String, height: String) -> Result<(), String> {
     let input_path = Path::new(&input);
     if !input_path.exists() { return Err("Input file not found".to_string()); }
-    let mut args = vec![ "-hwaccel".to_string(), "auto".to_string(), "-i".to_string(), input.clone() ];
+    let mut args = vec![ "-hwaccel".to_string(), "auto".to_string(), "-protocol_whitelist".to_string(), SAFE_PROTOCOLS.to_string(), "-i".to_string(), input.clone() ];
     if width != "0" && !width.is_empty() {
         let h = if height.is_empty() || height == "0" { "-1" } else { &height };
         args.push("-vf".to_string());
@@ -648,7 +658,7 @@ async fn probe_video(app: AppHandle, input: String) -> Result<String, String> {
     let input_path = Path::new(&input);
     if !input_path.exists() { return Err("Input file not found".to_string()); }
 
-    let args = vec!["-i".to_string(), input.clone()];
+    let args = vec!["-protocol_whitelist".to_string(), SAFE_PROTOCOLS.to_string(), "-i".to_string(), input.clone()];
     let output = app.shell().sidecar("ffmpeg")
         .map_err(|e| format!("Failed to find ffmpeg: {}", e))?
         .args(args)
@@ -741,7 +751,7 @@ async fn compress_video_target_size(app: AppHandle, cache: State<'_, EncoderCach
     if use_two_pass {
         // Pass 1
         let mut args1 = vec![
-            "-y".to_string(), "-i".to_string(), input.clone(),
+            "-y".to_string(), "-protocol_whitelist".to_string(), SAFE_PROTOCOLS.to_string(), "-i".to_string(), input.clone(),
             "-c:v".to_string(), selected_encoder.to_string(),
             "-b:v".to_string(), bitrate_str.clone(),
             "-pass".to_string(), "1".to_string(),
@@ -775,7 +785,7 @@ async fn compress_video_target_size(app: AppHandle, cache: State<'_, EncoderCach
 
         // Pass 2
         let args2 = vec![
-            "-y".to_string(), "-i".to_string(), input.clone(),
+            "-y".to_string(), "-protocol_whitelist".to_string(), SAFE_PROTOCOLS.to_string(), "-i".to_string(), input.clone(),
             "-c:v".to_string(), selected_encoder.to_string(),
             "-b:v".to_string(), bitrate_str.clone(),
             "-pass".to_string(), "2".to_string(),
@@ -812,6 +822,7 @@ async fn compress_video_target_size(app: AppHandle, cache: State<'_, EncoderCach
         // Single pass with maxrate for GPU encoders
         let args = vec![
             "-y".to_string(), "-hwaccel".to_string(), "auto".to_string(),
+            "-protocol_whitelist".to_string(), SAFE_PROTOCOLS.to_string(),
             "-i".to_string(), input.clone(),
             "-c:v".to_string(), selected_encoder.to_string(),
             "-b:v".to_string(), bitrate_str.clone(),
@@ -874,7 +885,7 @@ async fn compress_image_target_size(app: AppHandle, input: String, output: Strin
     for _i in 0..8 {
         let mid_q = (min_q + max_q) / 2.0;
         
-        let mut args = vec!["-hwaccel".to_string(), "auto".to_string(), "-i".to_string(), input.clone()];
+        let mut args = vec!["-hwaccel".to_string(), "auto".to_string(), "-protocol_whitelist".to_string(), SAFE_PROTOCOLS.to_string(), "-i".to_string(), input.clone()];
         if width != "0" && !width.is_empty() {
             let h = if height.is_empty() || height == "0" { "-1" } else { &height };
             args.push("-vf".to_string());
@@ -924,7 +935,7 @@ async fn compress_image_target_size(app: AppHandle, input: String, output: Strin
     }
 
     // Final encode with best_q if we didn't just leave it at the last iteration
-    let mut args = vec!["-hwaccel".to_string(), "auto".to_string(), "-i".to_string(), input.clone()];
+    let mut args = vec!["-hwaccel".to_string(), "auto".to_string(), "-protocol_whitelist".to_string(), SAFE_PROTOCOLS.to_string(), "-i".to_string(), input.clone()];
     if width != "0" && !width.is_empty() {
         let h = if height.is_empty() || height == "0" { "-1" } else { &height };
         args.push("-vf".to_string());
@@ -955,7 +966,7 @@ async fn compress_audio(app: AppHandle, input: String, output: String) -> Result
     if !input_path.exists() { return Err("Input file not found".to_string()); }
     
     let ext = Path::new(&output).extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
-    let mut args = vec![ "-hwaccel".to_string(), "auto".to_string(), "-i".to_string(), input.clone() ];
+    let mut args = vec![ "-hwaccel".to_string(), "auto".to_string(), "-protocol_whitelist".to_string(), SAFE_PROTOCOLS.to_string(), "-i".to_string(), input.clone() ];
 
     match ext.as_str() {
         "mp3" => {

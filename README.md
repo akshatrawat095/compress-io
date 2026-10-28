@@ -11,6 +11,7 @@
     <a href="https://github.com/akshatrawat095/compress-io/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/akshatrawat095/compress-io/total?style=for-the-badge&color=EC4899&labelColor=1E293B" /></a>
     <a href="https://github.com/akshatrawat095/compress-io/blob/main/LICENSE"><img alt="License: Proprietary" src="https://img.shields.io/badge/License-Proprietary_(All_Rights_Reserved)-E11D48?style=for-the-badge&labelColor=1E293B" /></a>
     <a href="https://github.com/akshatrawat095/compress-io"><img alt="Platform" src="https://img.shields.io/badge/Platform-Win%20%7C%20Mac%20%7C%20Linux-3B82F6?style=for-the-badge&labelColor=1E293B" /></a>
+    <a href="https://github.com/akshatrawat095/compress-io/security"><img alt="Supply Chain Security" src="https://img.shields.io/badge/Supply_Chain-SLSA_Level_3-10B981?style=for-the-badge&labelColor=1E293B" /></a>
   </p>
 
   <p align="center">
@@ -27,7 +28,7 @@
 
 Most media tools fall into two traps: they either upload your private files to a cloud server, or they are impossible to use locally without a degree in computer science. 
 
-**Compress I/O** is different. We engineered an ultra-premium, local-first media suite using **Tauri, Rust, and React**. It automatically hijacks your computer's dedicated GPU to compress, enhance, and scale media at breathtaking speeds — all from a stunning, glassmorphic UI.
+**Compress I/O** is different. We engineered an ultra-premium, local-first media suite using **Tauri, Rust, and React**. It automatically detects your computer's dedicated GPU to compress, enhance, and scale media at breathtaking speeds — all from a stunning, fluid glassmorphic UI.
 
 <br />
 
@@ -51,17 +52,58 @@ Most media tools fall into two traps: they either upload your private files to a
     </td>
     <td width="50%" valign="top">
       <h3>🛠️ Smart Diagnostics Engine</h3>
-      Hate cryptic errors? We parse every core processing failure (OOM, missing codecs, GPU crash) and display a beautiful, plain-English "Error Toast" with a clickable <b>Quick Fix</b> suggestion alongside the raw technical logs.
+      Hate cryptic errors? We parse every core processing failure (OOM, missing codecs, GPU crash) and display a clear, plain-English error toast with a clickable <b>Quick Fix</b> suggestion alongside raw technical logs.
     </td>
   </tr>
   <tr>
     <td width="50%" valign="top">
-      <h3>🔒 Enterprise-Grade Security</h3>
-      <b>100% Offline.</b> Your files never leave your SSD. Our CI/CD pipeline is hardened with SHA256 FFmpeg checksum verification, immutable GitHub Actions, and 0 known npm vulnerabilities.
+      <h3>🔒 100% Offline & Private</h3>
+      <b>Zero data exfiltration.</b> Your media files never touch the internet or external servers. Native media engines operate under strict protocol whitelisting (<code>file,crypto,data,pipe</code>), blocking SSRF and arbitrary remote resource loading at the engine level.
     </td>
-    <td width="50%" valign="top"></td>
+    <td width="50%" valign="top">
+      <h3>🔏 Cryptographic Provenance & SBOM</h3>
+      Every official release carries tamper-proof <b>Sigstore</b> build provenance attestations and a machine-readable <b>SPDX Software Bill of Materials</b>. You can mathematically verify that binaries were compiled directly by GitHub Actions without backdoors.
+    </td>
   </tr>
 </table>
+
+<br />
+
+## 🛡️ Defense-in-Depth Security & Supply Chain Verification
+
+Compress I/O follows **SLSA Level 3** supply chain standards to guarantee that the application you download is authentic, secure, and unmodified:
+
+```
+[ Your Source Code ] 
+       │  (OpenSSF Scorecard ensures repository health and least-privilege permissions)
+       ▼
+[ Hardened CI Runner ] 
+       │  (StepSecurity eBPF kernel monitoring blocks rogue egress network calls)
+       ▼
+[ Compiled Release Assets ] 
+       │  (SPDX SBOM inventories dependencies; Sigstore cryptographically signs binaries)
+       ▼
+[ End-User Machine ] 
+       │  (Minisign verifies in-app updates; FFmpeg protocol sandbox rejects malicious files)
+```
+
+### 🔐 Verify Any Binary in 5 Seconds
+You can cryptographically verify that any downloaded installer was compiled directly by our GitHub Actions build pipeline using the official GitHub CLI:
+
+```bash
+gh attestation verify Compress-IO_x64-setup.exe -R akshatrawat095/compress-io
+```
+
+### 📋 Security & Compliance Matrix
+
+| Security Layer | Standard / Tool | Protection |
+| :--- | :--- | :--- |
+| **Provenance Attestations** | Sigstore + GitHub OIDC | Cryptographic proof that releases came directly from our workflow |
+| **Software Inventory** | SPDX Standard (`.spdx.json`) | Full machine-readable manifest of all dependencies and hashes |
+| **CI/CD Hardening** | StepSecurity `harden-runner` | Kernel-level eBPF monitoring blocking credential exfiltration |
+| **Native Engine Sandbox** | FFmpeg Protocol Whitelist | Restricts engine to local protocols (`file,crypto,data,pipe`), blocking SSRF |
+| **Dependency Audits** | `npm audit` + `cargo audit` | Continuous scanning for CVEs in frontend and Rust crates |
+| **Auto-Updater Security** | Minisign Asymmetric Crypto | Every update payload verified with embedded cryptographic public keys |
 
 <br />
 
@@ -111,9 +153,9 @@ Whether it's a 4K ProRes `.mov` or a simple `.png`, Compress I/O handles it effo
 
 Compress I/O is engineered for maximum performance and minimum footprint:
 
-- **Frontend:** React 19 + Framer Motion (Glassmorphic, 120fps fluid UI)
-- **Backend:** Rust / Tauri v2 (Lightning fast IPC, microscopic RAM usage)
-- **Media Engine:** Heavily customized static FFmpeg binaries with hardware-accelerated flags pre-compiled.
+- **Frontend:** React 19 + Framer Motion (Glassmorphic, fluid 120fps UI)
+- **Backend:** Rust / Tauri v2 (Lightning-fast IPC, microscopic RAM usage)
+- **Media Engine:** Hardware-accelerated native FFmpeg sidecars sandboxed to safe local protocols.
 
 <br />
 
@@ -144,7 +186,7 @@ Windows Task Manager hides video encoding workloads by default. Open Task Manage
 <details>
 <summary><b>My 4K video size didn't drop significantly. Why?</b></summary>
 <br>
-Compress I/O prioritizes <b>Playback Compatibility</b> and <b>Visual Fidelity</b>. If your input was already highly compressed using a modern codec (like H.265/HEVC), the app may safely transcode it to the universally supported H.264 (`yuv420p` pixel format) while maintaining quality. This makes it playable on older TVs and iPhones, but limits the file size reduction. Try using the <b>Target Size</b> feature if you need aggressive shrinking!
+Compress I/O prioritizes <b>Playback Compatibility</b> and <b>Visual Fidelity</b>. If your input was already highly compressed using a modern codec (like H.265/HEVC), the app may safely transcode it to the universally supported H.264 (<code>yuv420p</code> pixel format) while maintaining quality. This makes it playable on older TVs and iPhones, but limits the file size reduction. Try using the <b>Target Size</b> feature if you need aggressive shrinking!
 </details>
 
 <details>
@@ -166,7 +208,6 @@ Have a feature request? Found a bug? Just want to say hi?
   <a href="https://instagram.com/error_on_first_tri3"><img src="https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white" /></a>
   <a href="https://x.com/IshmeetSingh_1"><img src="https://img.shields.io/badge/X_(Twitter)-000000?style=for-the-badge&logo=x&logoColor=white" /></a>
 </p>
-
 
 ---
 

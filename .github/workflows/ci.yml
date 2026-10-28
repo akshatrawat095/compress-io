@@ -1,21 +1,29 @@
 name: CI Verification
 
-on:
+"on":
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
 
-# Minimal read permission for testing
+# Minimal permissions for testing
 permissions:
   contents: read
+  checks: write
 
 jobs:
   test-build:
-    name: Frontend Build & Security Audit
+    name: Build & Security Audit
     runs-on: ubuntu-latest
 
     steps:
+      # 🛡️ SECURITY: Harden GitHub Actions runner against unauthorized network exfiltration
+      - name: Harden Runner
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2
+        with:
+          egress-policy: audit
+
+      # 🛡️ SECURITY: All actions pinned to immutable commit SHAs
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
@@ -28,8 +36,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Security audit check
+      # 🛡️ SECURITY: Audit npm dependencies for known CVEs
+      - name: Frontend security audit check
         run: npm audit --audit-level=high
+
+      # 🛡️ SECURITY: Audit Rust backend crates for known security advisories
+      - name: Rust security audit check
+        uses: rustsec/audit-check@69366f33c96575abad1ee0dba8212993eecbe998 # v2.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          working-directory: src-tauri
 
       - name: Build frontend bundle
         run: npm run build
