@@ -1,0 +1,30 @@
+# OSV-Scanner configuration for OpenSSF Scorecard Vulnerability check
+# Suppresses upstream unmaintained notices and non-exploitable transitive compile-time macros
+
+[[IgnoredVulns]]
+id = "GHSA-qwgh-2vcv-g2f7"
+reason = "Internal compile-time dependency of tauri-codegen (sha2), not exposed to runtime."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0429"
+reason = "Unsoundness in glib::VariantStrIter, unreferenced in desktop video compression pipeline."
+
+[[IgnoredVulns]]
+id = "GHSA-wrw7-89jp-8q8g"
+reason = "Upstream alias for RUSTSEC-2024-0429 (glib::VariantStrIter)."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0370"
+reason = "proc-macro-error unmaintained advisory notice; compile-time macro tool only."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0371"
+reason = "zbus_names unmaintained advisory notice; merged into upstream zbus monolith."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0370"
+reason = "zvariant unmaintained advisory notice; merged into upstream zbus monolith."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0372"
+reason = "zvariant_derive unmaintained advisory notice; merged into upstream zbus monolith."
