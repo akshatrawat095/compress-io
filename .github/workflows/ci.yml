@@ -6,15 +6,16 @@ name: CI Verification
   pull_request:
     branches: [ main ]
 
-# Minimal permissions for testing
-permissions:
-  contents: read
-  checks: write
+# Minimal top-level permissions (least privilege)
+permissions: {}
 
 jobs:
   test-build:
     name: Build & Security Audit
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
 
     steps:
       # 🛡️ SECURITY: Harden GitHub Actions runner against unauthorized network exfiltration

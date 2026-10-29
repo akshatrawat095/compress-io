@@ -15,6 +15,10 @@
   </p>
 
   <p align="center">
+    <a href="https://securityscorecards.dev/viewer/?uri=github.com/akshatrawat095/compress-io"><img alt="OpenSSF Scorecard" src="https://api.securityscorecards.dev/projects/github.com/akshatrawat095/compress-io/badge" /></a>
+  </p>
+
+  <p align="center">
     <i>No Cloud. No Limits. No Compromises.</i>
   </p>
   
