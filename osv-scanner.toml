@@ -28,3 +28,7 @@ reason = "zvariant unmaintained advisory notice; merged into upstream zbus monol
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0372"
 reason = "zvariant_derive unmaintained advisory notice; merged into upstream zbus monolith."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0543"
+reason = "chrono unmaintained advisory notice; transitive dependency of Tauri ecosystem."
