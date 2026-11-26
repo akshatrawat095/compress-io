@@ -171,9 +171,17 @@ fn apply_process_profile(pid: u32, perf_mode: &str) {
             "turbo" => "5",
             _ => "10",
         };
+        let pid_str = pid.to_string();
         let _ = StdCommand::new("renice")
-            .args(["-n", nice_val, "-p", &pid.to_string()])
+            .args(["-n", nice_val, "-p", &pid_str])
             .output();
+        #[cfg(target_os = "linux")]
+        if perf_mode != "turbo" {
+            let io_prio = if perf_mode == "eco" { "7" } else { "6" };
+            let _ = StdCommand::new("ionice")
+                .args(["-c", "2", "-n", io_prio, "-p", &pid_str])
+                .output();
+        }
     }
 }
 
@@ -417,6 +425,12 @@ async fn is_encoder_supported(app: &AppHandle, cache: &State<'_, EncoderCache>, 
             "-f", "lavfi", "-i", "color=s=1280x720:d=0.1",
             "-vf", "format=nv12,hwupload",
             "-c:v", "hevc_vaapi",
+            "-f", "null", "-"
+        ]
+    } else if encoder == "hevc_videotoolbox" {
+        vec![
+            "-f", "lavfi", "-i", "color=s=1280x720:d=0.1",
+            "-c:v", "hevc_videotoolbox", "-q:v", "58",
             "-f", "null", "-"
         ]
     } else {
@@ -867,14 +881,12 @@ async fn enhance_video(
         if cfg!(target_os = "macos") && is_encoder_supported(&app, &cache, "hevc_videotoolbox").await {
             selected_encoder = "hevc_videotoolbox";
             extra_args.extend(["-q:v", "55"].iter().map(|s| s.to_string()));
-        } else if cfg!(target_os = "windows") {
-            if is_encoder_supported(&app, &cache, "hevc_nvenc").await {
-                selected_encoder = "hevc_nvenc";
-                extra_args.extend(["-preset", "p4", "-cq", "24", "-b:v", "0"].iter().map(|s| s.to_string()));
-            } else if is_encoder_supported(&app, &cache, "hevc_qsv").await {
-                selected_encoder = "hevc_qsv";
-                extra_args.extend(["-global_quality", "24", "-preset", "faster"].iter().map(|s| s.to_string()));
-            }
+        } else if is_encoder_supported(&app, &cache, "hevc_nvenc").await {
+            selected_encoder = "hevc_nvenc";
+            extra_args.extend(["-preset", "p4", "-cq", "24", "-b:v", "0"].iter().map(|s| s.to_string()));
+        } else if cfg!(target_os = "windows") && is_encoder_supported(&app, &cache, "hevc_qsv").await {
+            selected_encoder = "hevc_qsv";
+            extra_args.extend(["-global_quality", "24", "-preset", "faster"].iter().map(|s| s.to_string()));
         }
     }
     if selected_encoder == "libx265" {
@@ -1037,6 +1049,17 @@ async fn compress_video(
                 extra_args.extend(["-pix_fmt", pix_fmt, "-tag:v", "hvc1"].iter().map(|s| s.to_string()));
             }
 
+            let low_bitrate_max_k = if selected_encoder != "libx265"
+                && q_mode != "high"
+                && probe.bitrate_kbps > 0.0
+                && probe.bitrate_kbps < 3500.0
+            {
+                let factor = if q_mode == "compact" { 0.75 } else { 0.90 };
+                Some((probe.bitrate_kbps * factor).max(80.0).floor())
+            } else {
+                None
+            };
+
             match selected_encoder {
                 "hevc_nvenc" => {
                     let nv_preset = if q_mode == "high" { "p5" } else { "p4" };
@@ -1046,7 +1069,14 @@ async fn compress_video(
                     ].iter().map(|s| s.to_string()));
                 }
                 "hevc_videotoolbox" => {
-                    extra_args.extend(["-q:v", vt_q].iter().map(|s| s.to_string()));
+                    if let Some(max_k) = low_bitrate_max_k {
+                        extra_args.extend(vec![
+                            "-b:v".to_string(), format!("{}k", max_k),
+                            "-maxrate".to_string(), format!("{}k", max_k),
+                        ]);
+                    } else {
+                        extra_args.extend(["-q:v", vt_q].iter().map(|s| s.to_string()));
+                    }
                 }
                 "hevc_qsv" => {
                     let qsv_preset = if q_mode == "high" { "medium" } else { "faster" };
@@ -1073,13 +1103,13 @@ async fn compress_video(
             }
 
             // Guard against bloating already small / low-bitrate inputs during GPU VBR encodes
-            if selected_encoder != "libx265" && q_mode != "high" && probe.bitrate_kbps > 0.0 && probe.bitrate_kbps < 3500.0 {
-                let factor = if q_mode == "compact" { 0.75 } else { 0.90 };
-                let max_k = (probe.bitrate_kbps * factor).max(80.0).floor();
-                extra_args.extend(vec![
-                    "-maxrate".to_string(), format!("{}k", max_k),
-                    "-bufsize".to_string(), format!("{}k", max_k * 2.0),
-                ]);
+            if selected_encoder != "hevc_videotoolbox" {
+                if let Some(max_k) = low_bitrate_max_k {
+                    extra_args.extend(vec![
+                        "-maxrate".to_string(), format!("{}k", max_k),
+                        "-bufsize".to_string(), format!("{}k", max_k * 2.0),
+                    ]);
+                }
             }
         },
         "webm" => {
