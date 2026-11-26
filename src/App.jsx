@@ -30,7 +30,6 @@ export default function App() {
   const [currentIndex, setCurrentIndex] = useState(null);
   
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isIndeterminate, setIsIndeterminate] = useState(false);
   
   const [useGpu, setUseGpu] = useState(true);
   const [hwInfo, setHwInfo] = useState({ tier: "cpu", encoder: "libx265", label: "Checking...", can_dual_engine: false });
@@ -228,7 +227,6 @@ export default function App() {
             setProgress(Math.max(p, 1));
             rawProgress.set(Math.max(p, 1));
             setTimeLeft(`${currentFrame} / ${totalPrepFrames.current} Frames Recovered`);
-            setIsIndeterminate(false);
           }
           return;
         }
@@ -239,25 +237,21 @@ export default function App() {
           setProgress(10);
           rawProgress.set(10);
           setTimeLeft(`GPU Ready: Launching Turbo Engine...`);
-          setIsIndeterminate(false);
           return;
         }
 
         if (line.startsWith("Prep: Active:")) {
           const msg = line.replace("Prep: Active:", "");
           setTimeLeft(msg);
-          setIsIndeterminate(true);
           return;
         }
 
         if (line.startsWith("Prep:")) {
-          setIsIndeterminate(true);
           return;
         }
 
         const match = line.match(/([\d.]+)%/);
         if (match) {
-          setIsIndeterminate(false);
           const rawPct = parseFloat(match[1]);
           // Map 0-100 AI progress to 10-95% of the total bar
           const mappedPercent = Math.round(10 + (rawPct * 0.85));
@@ -319,7 +313,6 @@ export default function App() {
 
     setProgress(0); setTimeLeft(null);
     smoothedSpeedRef.current = 0; lastEtaRef.current = 0; setDimSettings({ width: "", height: "" });
-    setIsIndeterminate(false);
   }, [getFileType]);
 
   useEffect(() => {
@@ -363,7 +356,6 @@ export default function App() {
       isBatchPoolRef.current = false;
       activeJobProgressRef.current = {};
       setIsProcessing(false);
-      setIsIndeterminate(false);
       setTimeLeft("PROCESS HALTED");
       setProgress(0);
       rawProgress.set(0);
@@ -380,7 +372,7 @@ export default function App() {
 
     setIsProcessing(true);
     setProgress(0); rawProgress.set(0); setTimeLeft(null);
-    smoothedSpeedRef.current = 0; lastEtaRef.current = 0; setIsIndeterminate(false);
+    smoothedSpeedRef.current = 0; lastEtaRef.current = 0;
 
     let outputFolder = "";
     let singleSavePath = "";
@@ -579,7 +571,7 @@ export default function App() {
           if (appMode === "enhance") {
             enhanceStartTimeRef.current = Date.now();
             if (file.type === 'VID') {
-                setIsIndeterminate(true); setProgress(0); setTimeLeft("Preparing AI Models...");
+                setProgress(0); setTimeLeft("Preparing AI Models...");
                 await invoke("enhance_video", { 
                     input: file.path, 
                     output: finalPath, 
@@ -594,7 +586,7 @@ export default function App() {
                     tileSize: tileSize
                 });
             } else if (file.type === 'IMG') {
-                setIsIndeterminate(true); setProgress(0); setTimeLeft("Warming up GPU & Processing...");
+                setProgress(0); setTimeLeft("Warming up GPU & Processing...");
                 await invoke("enhance_image", { 
                     input: file.path, 
                     output: finalPath, 
@@ -613,7 +605,7 @@ export default function App() {
             compressStartTimeRef.current = Date.now();
             lastEtaRef.current = 0;
             smoothedSpeedRef.current = 0;
-            setIsIndeterminate(false); setProgress(0); rawProgress.set(0); setTimeLeft("Calculating...");
+            setProgress(0); rawProgress.set(0); setTimeLeft("Calculating...");
             if (targetSizeEnabled && targetSize) {
                let targetKb = parseFloat(targetSize);
                if (targetSizeUnit === "MB") targetKb *= 1024;
@@ -655,7 +647,7 @@ export default function App() {
       }
     }
 
-    setIsProcessing(false); setIsIndeterminate(false); setTimeLeft(null); setCurrentIndex(null);
+    setIsProcessing(false); setTimeLeft(null); setCurrentIndex(null);
     const savedLocation = fileQueue.length === 1 ? singleSavePath : outputFolder;
     if (localSuccessCount > 0) {
         setSuccessData({ count: localSuccessCount, path: savedLocation, origSize: thisRunOrig, compSize: thisRunComp });
