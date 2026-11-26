@@ -45,9 +45,9 @@ export default function QuantumBurst({ active, color }) {
               fontFamily: 'monospace',
               fontSize: '10px',
               fontWeight: '900',
-              color: color || '#8b5cf6',
+              color: color || '#8AA282',
               userSelect: 'none',
-              textShadow: `0 0 5px ${color || '#8b5cf6'}66`
+              textShadow: `0 0 5px ${color || '#8AA282'}66`
             }}
           >
             {Math.random() > 0.5 ? '0' : '1'}

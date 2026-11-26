@@ -9,15 +9,15 @@ const ToggleItem = ({ active, label, onClick, isDarkMode, icon }) => (
     onClick={onClick} 
     className={`flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border transition-all ${
       active 
-        ? 'bg-studio-rose/10 border-studio-rose/30 text-studio-rose shadow-studio-sm' 
-        : (isDarkMode ? 'bg-white/5 border-white/5 text-slate-500 hover:bg-white/10' : 'bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-200 shadow-sm')
+        ? (isDarkMode ? 'bg-studio-sage/15 border-studio-sage/35 text-studio-moss shadow-studio-sm' : 'bg-studio-moss/20 border-studio-olive/35 text-studio-forest shadow-sm') 
+        : (isDarkMode ? 'bg-white/5 border-white/5 text-[#8C9488] hover:bg-white/10' : 'bg-[#EFECE4] border-[#DEDAD0] text-[#666C60] hover:bg-[#E7E3D9] shadow-sm')
     }`}
   >
      <div className="flex items-center gap-2">
         <Icon name={icon} className="w-3 h-3" />
         <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
      </div>
-     <div className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-studio-rose animate-pulse' : 'bg-slate-700'}`} />
+     <div className={`w-1.5 h-1.5 rounded-full ${active ? (isDarkMode ? 'bg-studio-sage animate-pulse' : 'bg-studio-forest animate-pulse') : 'bg-[#8C9488]/50'}`} />
   </button>
 );
 
@@ -28,6 +28,7 @@ const SettingsDeck = React.memo(({
   hasVideos,
   useGpu,
   setUseGpu,
+  hwInfo,
   dimSettings,
   setDimSettings,
   aiVideoModel,
@@ -48,10 +49,6 @@ const SettingsDeck = React.memo(({
   setStabilize,
   tileSize,
   setTileSize,
-  quality,
-  setQuality,
-  showAdvanced,
-  setShowAdvanced,
   isProcessing,
   startJob,
   stopJob,
@@ -82,8 +79,7 @@ const SettingsDeck = React.memo(({
     shake: "Fix Shake: Smoothly counteracts shaky camera movements for a more professional presentation.",
     size_target: "Target Size: Manually set the pixel dimensions. This resizes your image exactly to these width/height values.",
     output: "Optimization Lab: Pick your file format. WebP is smallest for web, PNG is lossless, and JPG is for compatibility.",
-    tile: "Tile Overlap: Adjusts how AI pieces the image together. Higher values prevent 'seam' lines but use more VRAM.",
-    quality_crf: "Quality Index (CRF): 18 is visually lossless, 24 is standard, 30+ is heavy compression. Lower is better quality."
+    tile: "Tile Overlap: Adjusts how AI pieces the image together. Higher values prevent 'seam' lines but use more VRAM."
   };
 
   const renderInfoToggle = (id, color = "text-slate-500") => (
@@ -131,13 +127,13 @@ const SettingsDeck = React.memo(({
       onClick={isProcessing ? stopJob : startJob}
       className={`w-full py-4 mt-auto rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] transition-all shadow-xl flex items-center justify-center gap-3 border ${
         isProcessing 
-        ? (isDarkMode ? 'bg-slate-800/50 border-white/5 text-slate-500' : 'bg-slate-100 border-slate-200 text-slate-400') 
+        ? (isDarkMode ? 'bg-[#1D251E] border-[#8AA282]/15 text-[#8A9485]' : 'bg-[#EAE7DF] border-[#DCD8CD] text-[#787F73]') 
         : (appMode === 'compress' 
-           ? 'bg-studio-violet border-studio-violet/50 text-white shadow-studio-violet/30' 
-           : 'bg-gradient-to-r from-studio-violet to-studio-rose border-white/10 text-white shadow-studio-rose/30')
+           ? 'bg-gradient-to-r from-studio-forest to-studio-olive border-studio-forest/40 text-[#FAF9F5] shadow-[0_12px_28px_rgba(66,79,60,0.28)]' 
+           : 'bg-gradient-to-r from-studio-olive to-[#747B4D] border-studio-olive/40 text-[#FAF9F5] shadow-[0_12px_28px_rgba(102,107,84,0.28)]')
       }`}
     >
-       <div className={`w-1.5 h-1.5 rounded-full ${isProcessing ? 'bg-amber-400 animate-pulse' : 'bg-white'}`} />
+       <div className={`w-1.5 h-1.5 rounded-full ${isProcessing ? 'bg-[#C28D38] animate-pulse' : 'bg-[#FAF9F5]'}`} />
         <div className="flex flex-col items-center text-center">
            <span className="text-[10px] font-black">
              {isProcessing 
@@ -181,7 +177,7 @@ const SettingsDeck = React.memo(({
        className="mt-1 flex flex-col items-center w-full"
     >
       <div className={`w-full flex flex-col gap-1.5 p-2.5 rounded-xl border transition-all duration-700 ${
-        isDarkMode ? 'bg-studio-obsidian/60 border-white/5 shadow-2xl' : 'bg-white/80 border-slate-200 shadow-lg'
+        isDarkMode ? 'bg-studio-obsidian/70 border-[#8AA282]/15 shadow-2xl' : 'bg-[#FAF9F5]/85 border-[#E2DFD5] shadow-lg'
       }`}>
         
         {/* Row 1: Core Acceleration (Only for Compression) */}
@@ -189,13 +185,22 @@ const SettingsDeck = React.memo(({
           <>
             <div className="flex items-center justify-between px-1">
                 <div className="flex items-center gap-1.5">
-                  <Icon name="cpu" className="w-2.5 h-2.5 text-studio-violet" />
-                  <span className={`text-[9px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-300' : 'text-slate-800'}`}>GPU ACCELERATION</span>
+                  <Icon name="cpu" className={`w-2.5 h-2.5 ${isDarkMode ? 'text-studio-sage' : 'text-studio-forest'}`} />
+                  <span className={`text-[9px] font-black uppercase tracking-widest ${isDarkMode ? 'text-[#ECEAE2]' : 'text-[#242B22]'}`}>HYBRID ENGINE</span>
+                  {hwInfo?.label && (
+                    <span className={`text-[7px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full border ${
+                      useGpu && hwInfo.tier !== 'cpu'
+                        ? (isDarkMode ? 'bg-studio-sage/15 border-studio-sage/35 text-studio-moss' : 'bg-studio-moss/20 border-studio-olive/25 text-studio-forest')
+                        : (isDarkMode ? 'bg-white/5 border-white/10 text-[#9DA498]' : 'bg-[#EFECE4] border-[#DCD8CD] text-[#5C6356]')
+                    }`}>
+                      {useGpu ? hwInfo.label : 'Tuned CPU'}
+                    </span>
+                  )}
                 </div>
-                <MotionToggle checked={useGpu} onChange={setUseGpu} isDarkMode={isDarkMode} />
+                <MotionToggle checked={useGpu} onChange={setUseGpu} disabled={isProcessing} />
             </div>
 
-            <div className={`h-px w-full ${isDarkMode ? 'bg-white/5' : 'bg-slate-100'}`} />
+            <div className={`h-px w-full ${isDarkMode ? 'bg-[#8AA282]/12' : 'bg-[#E6E2D8]'}`} />
           </>
         )}
 
@@ -212,14 +217,14 @@ const SettingsDeck = React.memo(({
                          placeholder="WIDTH" 
                          value={dimSettings.width} 
                          onChange={(e) => setDimSettings({...dimSettings, width: e.target.value})} 
-                         className={`w-full bg-transparent border rounded-md px-2 py-1.5 text-[10px] outline-none focus:ring-1 focus:ring-studio-violet/30 transition-all font-bold ${isDarkMode ? 'border-white/5 text-slate-100 placeholder:text-slate-700' : 'border-slate-200 text-slate-900 placeholder:text-slate-400'}`} 
+                         className={`w-full bg-transparent border rounded-md px-2 py-1.5 text-[10px] outline-none focus:ring-1 focus:ring-studio-sage/40 transition-all font-bold ${isDarkMode ? 'border-[#8AA282]/15 text-[#F2F0EB] placeholder:text-[#5E655B]' : 'border-[#DDD8CC] text-[#232921] placeholder:text-[#8E9487]'}`} 
                        />
                        <input 
                          type="number" 
                          placeholder="HEIGHT" 
                          value={dimSettings.height} 
                          onChange={(e) => setDimSettings({...dimSettings, height: e.target.value})} 
-                         className={`w-full bg-transparent border rounded-md px-2 py-1.5 text-[10px] outline-none focus:ring-1 focus:ring-studio-violet/30 transition-all font-bold ${isDarkMode ? 'border-white/5 text-slate-100 placeholder:text-slate-700' : 'border-slate-200 text-slate-900 placeholder:text-slate-400'}`} 
+                         className={`w-full bg-transparent border rounded-md px-2 py-1.5 text-[10px] outline-none focus:ring-1 focus:ring-studio-sage/40 transition-all font-bold ${isDarkMode ? 'border-[#8AA282]/15 text-[#F2F0EB] placeholder:text-[#5E655B]' : 'border-[#DDD8CC] text-[#232921] placeholder:text-[#8E9487]'}`} 
                        />
                    </div>
                 </div>
@@ -229,8 +234,8 @@ const SettingsDeck = React.memo(({
              <div className="flex flex-col gap-1 mt-1">
                  <div className="flex items-center justify-between px-1">
                     <div className="flex items-center gap-1.5">
-                      <Icon name="terminal" className="w-2.5 h-2.5 text-studio-rose" />
-                      <span className={`text-[9px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-300' : 'text-slate-800'}`}>TARGET SIZE</span>
+                      <Icon name="terminal" className={`w-2.5 h-2.5 ${isDarkMode ? 'text-studio-lichen' : 'text-studio-olive'}`} />
+                      <span className={`text-[9px] font-black uppercase tracking-widest ${isDarkMode ? 'text-[#ECEAE2]' : 'text-[#242B22]'}`}>TARGET SIZE</span>
                     </div>
                     <MotionToggle checked={targetSizeEnabled} onChange={setTargetSizeEnabled} isDarkMode={isDarkMode} />
                  </div>
@@ -244,13 +249,13 @@ const SettingsDeck = React.memo(({
                           exit={{ height: 0, opacity: 0, overflow: "hidden" }}
                           className="flex flex-col gap-1.5 mt-1"
                        >
-                          <div className={`p-2 rounded-xl border flex gap-1.5 items-center ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+                          <div className={`p-2 rounded-xl border flex gap-1.5 items-center ${isDarkMode ? 'bg-black/25 border-[#8AA282]/15' : 'bg-[#F2F0EB]/85 border-[#DFDCD2]'}`}>
                               <input 
                                 type="number" 
                                 placeholder="SIZE (e.g. 8)" 
                                 value={targetSize} 
                                 onChange={(e) => setTargetSize(e.target.value)} 
-                                className={`w-2/3 bg-transparent border rounded-md px-2 py-1.5 text-[10px] outline-none focus:ring-1 focus:ring-studio-rose/50 transition-all font-bold ${isDarkMode ? 'border-white/10 text-white placeholder:text-slate-600' : 'border-slate-300 text-slate-900 placeholder:text-slate-400'}`} 
+                                className={`w-2/3 bg-transparent border rounded-md px-2 py-1.5 text-[10px] outline-none focus:ring-1 focus:ring-studio-sage/45 transition-all font-bold ${isDarkMode ? 'border-[#8AA282]/20 text-[#F2F0EB] placeholder:text-[#666E62]' : 'border-[#D5D0C3] text-[#232921] placeholder:text-[#8E9487]'}`} 
                               />
                               <div className="w-1/3">
                                 <MotionSelect 
@@ -273,12 +278,12 @@ const SettingsDeck = React.memo(({
                           </div>
 
                           {/* Format Selector */}
-                          <div className={`p-2 rounded-xl border flex flex-col gap-1 ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+                          <div className={`p-2 rounded-xl border flex flex-col gap-1 ${isDarkMode ? 'bg-black/25 border-[#8AA282]/15' : 'bg-[#F2F0EB]/85 border-[#DFDCD2]'}`}>
                               <label className={`text-[7px] font-black uppercase tracking-[0.1em] opacity-40 ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>OUTPUT FORMAT</label>
                               <select 
                                 value={targetFormat} 
                                 onChange={(e) => setTargetFormat(e.target.value)}
-                                className={`w-full bg-transparent border rounded-md px-2 py-1.5 text-[10px] outline-none font-bold ${isDarkMode ? 'border-white/10 text-white' : 'border-slate-300 text-slate-900'}`}
+                                className={`w-full border rounded-md px-2 py-1.5 text-[10px] outline-none font-bold ${isDarkMode ? 'bg-[#141B15] border-[#8AA282]/20 text-[#F2F0EB]' : 'bg-[#FAF9F5] border-[#D5D0C3] text-[#232921]'}`}
                               >
                                 <option value="same">Same as Input</option>
                                 {hasImages && (
@@ -329,7 +334,7 @@ const SettingsDeck = React.memo(({
                  </AnimatePresence>
              </div>
 
-             <div className={`h-px w-full mt-1 ${isDarkMode ? 'bg-white/5' : 'bg-slate-100'}`} />
+             <div className={`h-px w-full mt-1 ${isDarkMode ? 'bg-[#8AA282]/12' : 'bg-[#E6E2D8]'}`} />
           </>
         ) : (
           <div className="flex flex-col gap-1.5">

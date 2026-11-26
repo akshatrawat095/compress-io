@@ -31,10 +31,10 @@ export default function MotionToggle({ checked, onChange, disabled = false }) {
         opacity: disabled ? 0.45 : 1,
       }}
       animate={{
-        backgroundColor: checked ? "#8b5cf6" : "rgba(148,163,184,0.35)",
+        backgroundColor: checked ? "#424F3C" : "rgba(102,107,84,0.28)",
         boxShadow: checked
-          ? "0 0 0 3px rgba(139,92,246,0.18), inset 0 1px 2px rgba(0,0,0,0.2)"
-          : "inset 0 1px 2px rgba(0,0,0,0.1)",
+          ? "0 0 0 3px rgba(138,162,130,0.24), inset 0 1px 2px rgba(0,0,0,0.2)"
+          : "inset 0 1px 2px rgba(66,79,60,0.12)",
       }}
       transition={{ duration: 0.25, ease: "easeInOut" }}
       whileTap={!disabled ? { scale: 0.93 } : {}}

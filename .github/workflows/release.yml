@@ -39,21 +39,34 @@ jobs:
         with:
           name: 'Compress I/O ${{ github.ref_name }}'
           draft: false
-          prerelease: true
+          prerelease: false
           files: compress-io-sbom.spdx.json
           body: |
-            ## 🚀 Compress I/O ${{ github.ref_name }}
+            ## Compress I/O ${{ github.ref_name }}
 
-            > **Fast, private, local-first media compression** for images and videos — powered by FFmpeg & built with Tauri v2.
+            > **Minimalist controls, intelligent defaults.** Automatic Hybrid GPU+CPU compression, zero-lag background pacing, and a warm botanical sage redesign — powered by FFmpeg & Tauri v2.
 
             ---
 
-            ### ✨ Highlights & Security Hardening
-            - **Native Engine Sandboxing:** Hardened FFmpeg sidecar processes with strict protocol whitelisting (`file,crypto,data,pipe`) to disarm malicious media files and prevent remote inclusion / SSRF attacks.
-            - **Sigstore Cryptographic Attestations:** All release binaries now carry tamper-proof provenance certificates issued via GitHub OIDC & Sigstore.
-            - **Software Bill of Materials (SBOM):** Standard machine-readable `compress-io-sbom.spdx.json` inventory attached directly to this release.
-            - **Runner Hardening:** Build workflows protected by StepSecurity eBPF runtime monitoring against supply chain exfiltration.
-            - **Zero Upstream Vulnerabilities:** Verified clean across all npm dependencies and Rust crates.
+            ### ✨ What's New
+            - **New Studio Emblem & Warm Botanical Sage Theme:** Replaced the legacy lightning icon with a custom inward-compression `I/O` emblem and a contrast-validated Pantone palette (`Black Forest`, `Olivine`, `Mistletoe`, and `Warm Alabaster`) across light and dark modes.
+            - **Zero-Config Smart Quality & Anti-Bloat Protection:** Probes resolution and bitrate to preserve 4K and high-bitrate fidelity while clamping GPU VBR bitrates on low-bitrate inputs (`< 3500 kbps`) so small clips shrink without bloating.
+            - **Hybrid GPU + Dual-Engine Batching (Default ON):** Automatically cascades `NVIDIA NVENC` -> `Intel QuickSync` -> `AMD VCN` / `Apple VideoToolbox` / `Linux VAAPI` -> `Tuned CPU`. Multi-video queues on NVIDIA dGPU systems engage concurrent **Dual-Engine (`dGPU + Tuned CPU`)** batching automatically, alongside 3x parallel image batches.
+            - **Lag-Free Background Pacing:** Runs encode workers under `BELOW_NORMAL` CPU priority, Windows Low Disk I/O priority, and tuned `libx265` thread pools (`no-sao=1`, bounded `frame-threads`) so your system stays responsive.
+            - **True 2-Pass Target Size, Audio ETA & Format Fixes:** Fixed real 2-pass HEVC and VP9 target-size encoding, added audio duration probing + adaptive audio bitrates, resolved `.ogv` / GIF / silent-video edge cases, and upgraded progress to Dual-Point EMA remaining-time estimation.
+
+            ---
+
+            ### 💡 Hybrid Mode Tip
+            - **Keep `HYBRID ENGINE` ON (Default)** for fast, cool 4K/HD video compression and multi-file batches.
+            - **Toggle `HYBRID ENGINE` OFF (`Tuned CPU`)** when using **Target Size** for strict MB/KB precision or squeezing archival clips for maximum size reduction per megabyte.
+
+            ---
+
+            ### 🔐 Highlights & Security Hardening
+            - **Native Engine Sandboxing:** Hardened FFmpeg sidecar processes with strict protocol whitelisting (`file,crypto,data,pipe`).
+            - **Sigstore Cryptographic Attestations & SBOM:** Signed provenance certificates via GitHub OIDC & Sigstore plus `compress-io-sbom.spdx.json`.
+            - **Zero Upstream Vulnerabilities:** Audited cleanly across npm and Cargo dependencies.
 
             ---
 
@@ -208,18 +221,31 @@ jobs:
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           releaseBody: |
-            ## 🚀 Compress I/O ${{ github.ref_name }}
+            ## Compress I/O ${{ github.ref_name }}
 
-            > **Fast, private, local-first media compression** for images and videos — powered by FFmpeg & built with Tauri v2.
+            > **Minimalist controls, intelligent defaults.** Automatic Hybrid GPU+CPU compression, zero-lag background pacing, and a warm botanical sage redesign — powered by FFmpeg & Tauri v2.
 
             ---
 
-            ### ✨ Highlights & Security Hardening
-            - **Native Engine Sandboxing:** Hardened FFmpeg sidecar processes with strict protocol whitelisting (`file,crypto,data,pipe`) to disarm malicious media files and prevent remote inclusion / SSRF attacks.
-            - **Sigstore Cryptographic Attestations:** All release binaries now carry tamper-proof provenance certificates issued via GitHub OIDC & Sigstore.
-            - **Software Bill of Materials (SBOM):** Standard machine-readable `compress-io-sbom.spdx.json` inventory attached directly to this release.
-            - **Runner Hardening:** Build workflows protected by StepSecurity eBPF runtime monitoring against supply chain exfiltration.
-            - **Zero Upstream Vulnerabilities:** Verified clean across all npm dependencies and Rust crates.
+            ### ✨ What's New
+            - **New Studio Emblem & Warm Botanical Sage Theme:** Replaced the legacy lightning icon with a custom inward-compression `I/O` emblem and a contrast-validated Pantone palette (`Black Forest`, `Olivine`, `Mistletoe`, and `Warm Alabaster`) across light and dark modes.
+            - **Zero-Config Smart Quality & Anti-Bloat Protection:** Probes resolution and bitrate to preserve 4K and high-bitrate fidelity while clamping GPU VBR bitrates on low-bitrate inputs (`< 3500 kbps`) so small clips shrink without bloating.
+            - **Hybrid GPU + Dual-Engine Batching (Default ON):** Automatically cascades `NVIDIA NVENC` -> `Intel QuickSync` -> `AMD VCN` / `Apple VideoToolbox` / `Linux VAAPI` -> `Tuned CPU`. Multi-video queues on NVIDIA dGPU systems engage concurrent **Dual-Engine (`dGPU + Tuned CPU`)** batching automatically, alongside 3x parallel image batches.
+            - **Lag-Free Background Pacing:** Runs encode workers under `BELOW_NORMAL` CPU priority, Windows Low Disk I/O priority, and tuned `libx265` thread pools (`no-sao=1`, bounded `frame-threads`) so your system stays responsive.
+            - **True 2-Pass Target Size, Audio ETA & Format Fixes:** Fixed real 2-pass HEVC and VP9 target-size encoding, added audio duration probing + adaptive audio bitrates, resolved `.ogv` / GIF / silent-video edge cases, and upgraded progress to Dual-Point EMA remaining-time estimation.
+
+            ---
+
+            ### 💡 Hybrid Mode Tip
+            - **Keep `HYBRID ENGINE` ON (Default)** for fast, cool 4K/HD video compression and multi-file batches.
+            - **Toggle `HYBRID ENGINE` OFF (`Tuned CPU`)** when using **Target Size** for strict MB/KB precision or squeezing archival clips for maximum size reduction per megabyte.
+
+            ---
+
+            ### 🔐 Highlights & Security Hardening
+            - **Native Engine Sandboxing:** Hardened FFmpeg sidecar processes with strict protocol whitelisting (`file,crypto,data,pipe`).
+            - **Sigstore Cryptographic Attestations & SBOM:** Signed provenance certificates via GitHub OIDC & Sigstore plus `compress-io-sbom.spdx.json`.
+            - **Zero Upstream Vulnerabilities:** Audited cleanly across npm and Cargo dependencies.
 
             ---
 

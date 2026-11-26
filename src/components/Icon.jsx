@@ -11,6 +11,14 @@ const pathVariants = {
 };
 
 const icons = {
+  compressLogo: (
+    <>
+      <motion.path d="M3 7.5 6 12l-3 4.5" variants={pathVariants} />
+      <motion.path d="M21 7.5 18 12l3 4.5" variants={pathVariants} />
+      <motion.circle cx="12" cy="12" r="3.7" variants={pathVariants} />
+      <motion.path d="M12 9.4v5.2" variants={pathVariants} />
+    </>
+  ),
   zap: <motion.path d="M4 14l9-10V10h7l-9 10V14H4z" variants={pathVariants} />,
   sparkles: (
     <>
@@ -126,6 +134,13 @@ const extraIcons = {
       <motion.path d="M12.8 17.5a2.5 2.5 0 1 1-2.3-3.5h7.5" variants={pathVariants} />
       <motion.path d="M14.7 4.5a2.5 2.5 0 1 0-2.2 3.5H20" variants={pathVariants} />
       <motion.path d="M8 11h11.7" variants={pathVariants} />
+    </>
+  ),
+  music: (
+    <>
+      <motion.path d="M9 18V5l12-2v13" variants={pathVariants} />
+      <motion.circle cx="6" cy="18" r="3" variants={pathVariants} />
+      <motion.circle cx="18" cy="16" r="3" variants={pathVariants} />
     </>
   )
 };

@@ -32,7 +32,7 @@ export default function MotionSelect({ value, onChange, options, isDarkMode = fa
       <motion.button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        whileHover={{ borderColor: "rgba(139,92,246,0.7)" }}
+        whileHover={{ borderColor: isDarkMode ? "rgba(138,162,130,0.65)" : "rgba(66,79,60,0.55)" }}
         whileTap={{ scale: 0.99 }}
         transition={{ duration: 0.15 }}
         style={{
@@ -42,15 +42,15 @@ export default function MotionSelect({ value, onChange, options, isDarkMode = fa
           justifyContent: "space-between",
           padding: "9px 12px",
           borderRadius: "10px",
-          border: isDarkMode ? "1.5px solid rgba(255,255,255,0.08)" : "2px solid rgba(139,92,246,0.4)",
-          background: isDarkMode ? "rgba(30, 41, 59, 0.4)" : "rgba(255,255,255,0.85)",
+          border: isDarkMode ? "1.5px solid rgba(138,162,130,0.22)" : "1.5px solid rgba(66,79,60,0.28)",
+          background: isDarkMode ? "rgba(22, 29, 23, 0.72)" : "rgba(250, 249, 245, 0.92)",
           backdropFilter: "blur(6px)",
-          boxShadow: isDarkMode ? "none" : "0 2px 8px rgba(0,0,0,0.05)",
+          boxShadow: isDarkMode ? "none" : "0 2px 8px rgba(66,79,60,0.06)",
           cursor: "pointer",
           fontSize: "12px",
           fontWeight: "600",
           fontFamily: "inherit",
-          color: isDarkMode ? "#cbd5e1" : "#334155",
+          color: isDarkMode ? "#E5E2D9" : "#262D24",
           textAlign: "left",
           outline: "none",
         }}
@@ -87,33 +87,33 @@ export default function MotionSelect({ value, onChange, options, isDarkMode = fa
               left: 0,
               right: 0,
               zIndex: 1000,
-              background: isDarkMode ? "rgba(15, 23, 42, 0.95)" : "rgba(255,255,255,0.92)",
+              background: isDarkMode ? "rgba(18, 24, 19, 0.96)" : "rgba(250, 249, 245, 0.96)",
               backdropFilter: "blur(16px)",
-              border: isDarkMode ? "1.5px solid rgba(255,255,255,0.15)" : "1.5px solid rgba(139,92,246,0.2)",
+              border: isDarkMode ? "1.5px solid rgba(138,162,130,0.22)" : "1.5px solid rgba(66,79,60,0.22)",
               borderRadius: "12px",
               overflow: "hidden",
               boxShadow: isDarkMode 
-                ? "0 20px 50px rgba(0,0,0,0.4), 0 0 10px rgba(139,92,246,0.1)" 
-                : "0 12px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(139,92,246,0.1)",
+                ? "0 20px 50px rgba(0,0,0,0.45), 0 0 12px rgba(138,162,130,0.12)" 
+                : "0 12px 40px rgba(42,48,38,0.12), 0 2px 8px rgba(66,79,60,0.08)",
             }}
           >
             {options.map((opt, idx) => (
               <motion.div
                 key={opt.value}
                 onClick={() => { onChange(opt.value); setOpen(false); }}
-                whileHover={{ background: isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(139,92,246,0.12)" }}
+                whileHover={{ background: isDarkMode ? "rgba(138,162,130,0.12)" : "rgba(138,162,130,0.15)" }}
                 whileTap={{ scale: 0.98 }}
                 style={{
                   padding: "10px 14px",
                   fontSize: "12px",
                   fontWeight: opt.value === value ? "700" : "600",
-                  color: opt.value === value ? "#8b5cf6" : (isDarkMode ? "#94a3b8" : "#334155"),
+                  color: opt.value === value ? (isDarkMode ? "#9DB290" : "#424F3C") : (isDarkMode ? "#B6BCB0" : "#3E453B"),
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
                   borderBottom: idx < options.length - 1 
-                    ? (isDarkMode ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.06)") 
+                    ? (isDarkMode ? "1px solid rgba(138,162,130,0.1)" : "1px solid rgba(66,79,60,0.08)") 
                     : "none",
                 }}
               >
@@ -129,7 +129,7 @@ export default function MotionSelect({ value, onChange, options, isDarkMode = fa
                       height="14"
                       viewBox="0 0 24 24"
                       fill="none"
-                      stroke="#8b5cf6"
+                      stroke={isDarkMode ? "#9DB290" : "#424F3C"}
                       strokeWidth="2.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"

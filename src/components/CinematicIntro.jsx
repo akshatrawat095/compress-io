@@ -1,11 +1,11 @@
 import { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Icon from './Icon';
 
 export default function CinematicIntro({ onComplete, appMode }) {
   const [isExiting, setIsExiting] = useState(false);
   const logoText = appMode === 'enhance' ? 'ENHANCE I/O' : 'COMPRESS I/O';
-  const logoIcon = appMode === 'enhance' ? '✨' : '⚡';
-  const accent = appMode === 'enhance' ? '#f43f5e' : '#8b5cf6';
+  const accent = appMode === 'enhance' ? '#747B4D' : '#8AA282';
 
   // 🎇 Generate 40 minimalist particles with random trajectories
   const particles = useMemo(() => {
@@ -108,7 +108,7 @@ export default function CinematicIntro({ onComplete, appMode }) {
         position: 'fixed',
         inset: 0,
         zIndex: 9999,
-        background: '#020617',
+        background: '#0E130F',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -137,11 +137,11 @@ export default function CinematicIntro({ onComplete, appMode }) {
         ))}
       </div>
 
-      {/* ⚡ Core Logo Icon Snap */}
+      {/* Core Studio Emblem Snap */}
       <motion.div
-        initial={{ scale: 0, opacity: 0, rotate: -180 }}
+        initial={{ scale: 0, opacity: 0, rotate: -90 }}
         animate={{ 
-          scale: [0, 1.2, 1], 
+          scale: [0, 1.12, 1], 
           opacity: 1, 
           rotate: 0 
         }}
@@ -152,14 +152,12 @@ export default function CinematicIntro({ onComplete, appMode }) {
           stiffness: 300, 
           damping: 15 
         }}
+        className="p-5 rounded-3xl bg-gradient-to-br from-[#666B54] to-[#424F3C] ring-1 ring-white/20 mb-5 z-10"
         style={{ 
-          fontSize: '72px', 
-          zIndex: 10, 
-          marginBottom: '20px',
-          filter: `drop-shadow(0 0 20px ${accent}44)`
+          boxShadow: `0 0 36px ${accent}44`
         }}
       >
-        {logoIcon}
+        <Icon name={appMode === 'enhance' ? 'sparkles' : 'compressLogo'} className="w-14 h-14 text-[#F2F0EB]" stroke={1.9} />
       </motion.div>
 
       {/* 🍱 Staggered Ripple Text */}
@@ -171,7 +169,7 @@ export default function CinematicIntro({ onComplete, appMode }) {
           display: 'flex', 
           fontSize: '28px', 
           fontWeight: '900', 
-          color: 'white', 
+          color: '#F2F0EB', 
           letterSpacing: '0.3em', 
           zIndex: 10,
           fontFamily: "'Outfit', sans-serif"

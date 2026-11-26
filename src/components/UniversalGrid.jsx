@@ -9,10 +9,10 @@ export default function UniversalGrid({ isProcessing, isDarkMode, appMode }) {
   // Pre-calculate dot indices for consistent mapping
   const dots = useMemo(() => Array.from({ length: totalDots }), [totalDots]);
 
-  const primaryColor = appMode === 'enhance' ? '#f43f5e' : '#8b5cf6';
+  const primaryColor = appMode === 'enhance' ? '#747B4D' : '#8AA282';
   const glowColor = isDarkMode 
-    ? (appMode === 'enhance' ? 'rgba(244, 63, 94, 0.6)' : 'rgba(139, 92, 246, 0.6)')
-    : 'rgba(0, 0, 0, 0.1)';
+    ? (appMode === 'enhance' ? 'rgba(116, 123, 77, 0.5)' : 'rgba(138, 162, 130, 0.55)')
+    : 'rgba(66, 79, 60, 0.1)';
 
   // Pulse animation variants
   const dotVariants = {
@@ -51,7 +51,7 @@ export default function UniversalGrid({ isProcessing, isDarkMode, appMode }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: isDarkMode ? '#0f172a' : 'transparent'
+        background: isDarkMode ? '#0E130F' : 'transparent'
       }}
     >
       <div 

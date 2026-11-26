@@ -2,7 +2,7 @@
   "name": "universal-compressor",
   "private": true,
   "license": "UNLICENSED",
-  "version": "0.1.59",
+  "version": "0.1.60",
   "type": "module",
   "scripts": {
     "dev": "vite",
