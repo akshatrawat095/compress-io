@@ -26,9 +26,9 @@ export default function UpdaterModal({ isDarkMode }) {
   const springX = useSpring(mouseX, { stiffness: 500, damping: 50 });
   const springY = useSpring(mouseY, { stiffness: 500, damping: 50 });
 
-  const spotlightColor = isDarkMode ? 'rgba(139, 92, 246, 0.15)' : 'rgba(139, 92, 246, 0.08)';
+  const spotlightColor = isDarkMode ? 'rgba(138, 162, 130, 0.15)' : 'rgba(102, 107, 84, 0.08)';
   const spotlightGlow = useMotionTemplate`radial-gradient(400px circle at ${springX}px ${springY}px, ${spotlightColor}, transparent 80%)`;
-  const borderGlow = useMotionTemplate`radial-gradient(200px circle at ${springX}px ${springY}px, rgba(139, 92, 246, 0.4), transparent 80%)`;
+  const borderGlow = useMotionTemplate`radial-gradient(200px circle at ${springX}px ${springY}px, rgba(138, 162, 130, 0.4), transparent 80%)`;
 
   const staggerVariants = React.useMemo(() => ({
     hidden: { opacity: 0, y: 10 },
@@ -36,19 +36,19 @@ export default function UpdaterModal({ isDarkMode }) {
   }), []);
 
   const mdComponents = React.useMemo(() => ({
-    h2: ({node, ...props}) => <motion.h2 variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true}} className="text-sm font-black mb-2 tracking-wide text-white/95" {...props} />,
-    h3: ({node, ...props}) => <motion.h3 variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true}} className="text-xs font-bold uppercase tracking-wider mt-4 mb-2 text-fuchsia-400" {...props} />,
+    h2: ({node, ...props}) => <motion.h2 variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true}} className={`text-sm font-black mb-2 tracking-wide ${isDarkMode ? 'text-[#F2F0EB]' : 'text-[#232921]'}`} {...props} />,
+    h3: ({node, ...props}) => <motion.h3 variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true}} className={`text-xs font-bold uppercase tracking-wider mt-4 mb-2 ${isDarkMode ? 'text-studio-moss' : 'text-studio-forest'}`} {...props} />,
     p: ({node, ...props}) => <motion.p variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true}} className="mb-2 leading-relaxed opacity-90 text-xs" {...props} />,
     ul: ({node, ...props}) => <ul className="list-disc list-inside space-y-1.5 my-2 pl-1 leading-relaxed text-xs opacity-90" {...props} />,
     li: ({node, ...props}) => <li className="leading-relaxed" {...props} />,
-    code: ({node, inline, ...props}) => inline ? <code className="px-1.5 py-0.5 rounded bg-white/10 font-mono text-[11px] text-fuchsia-400" {...props} /> : <code {...props} />,
-    pre: ({node, ...props}) => <pre className="p-3 my-2.5 rounded-lg bg-black/40 text-[11px] font-mono overflow-x-auto border border-white/5 text-slate-200" {...props} />,
-    table: ({node, ...props}) => <div className="overflow-x-auto my-3 rounded-lg border border-white/10"><table className="w-full text-left border-collapse text-[11px]" {...props} /></div>,
-    th: ({node, ...props}) => <th className={`border-b py-2 px-3 font-bold ${isDarkMode ? 'border-white/10 bg-white/5 text-white/90' : 'border-slate-200 bg-slate-100 text-slate-800'}`} {...props} />,
-    tr: ({node, ...props}) => <tr className={`border-b last:border-b-0 ${isDarkMode ? 'border-white/5 hover:bg-white/5' : 'border-slate-100 hover:bg-slate-50'} transition-colors`} {...props} />,
-    td: ({node, ...props}) => <td className="py-2 px-3 opacity-80" {...props} />,
-    hr: ({node, ...props}) => <hr className={`my-3 ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`} {...props} />,
-    blockquote: ({node, ...props}) => <blockquote className={`border-l-2 border-fuchsia-500 pl-3 py-1.5 my-2 text-xs italic rounded-r-lg ${isDarkMode ? 'bg-fuchsia-500/10 text-slate-300' : 'bg-fuchsia-500/5 text-slate-600'}`} {...props} />,
+    code: ({node, inline, ...props}) => inline ? <code className={`px-1.5 py-0.5 rounded font-mono text-[11px] ${isDarkMode ? 'bg-white/10 text-studio-moss' : 'bg-studio-sage/15 text-studio-forest'}`} {...props} /> : <code {...props} />,
+    pre: ({node, ...props}) => <pre className={`p-3 my-2.5 rounded-lg text-[11px] font-mono overflow-x-auto border ${isDarkMode ? 'bg-black/40 border-white/5 text-[#E5E2D9]' : 'bg-[#EFECE4] border-[#DFDCD2] text-[#232921]'}`} {...props} />,
+    table: ({node, ...props}) => <div className={`overflow-x-auto my-3 rounded-lg border ${isDarkMode ? 'border-white/10' : 'border-[#DFDCD2]'}`}><table className="w-full text-left border-collapse text-[11px]" {...props} /></div>,
+    th: ({node, ...props}) => <th className={`border-b py-2 px-3 font-bold ${isDarkMode ? 'border-white/10 bg-white/5 text-[#F2F0EB]' : 'border-[#DFDCD2] bg-[#EAE7DF] text-[#232921]'}`} {...props} />,
+    tr: ({node, ...props}) => <tr className={`border-b last:border-b-0 ${isDarkMode ? 'border-white/5 hover:bg-white/5' : 'border-[#EAE7DF] hover:bg-[#EFECE4]'} transition-colors`} {...props} />,
+    td: ({node, ...props}) => <td className="py-2 px-3 opacity-85" {...props} />,
+    hr: ({node, ...props}) => <hr className={`my-3 ${isDarkMode ? 'border-white/10' : 'border-[#DFDCD2]'}`} {...props} />,
+    blockquote: ({node, ...props}) => <blockquote className={`border-l-2 border-studio-sage pl-3 py-1.5 my-2 text-xs italic rounded-r-lg ${isDarkMode ? 'bg-studio-sage/10 text-[#D7DDD3]' : 'bg-studio-sage/10 text-[#495046]'}`} {...props} />,
   }), [isDarkMode, staggerVariants]);
 
   useEffect(() => {
@@ -103,7 +103,7 @@ export default function UpdaterModal({ isDarkMode }) {
           exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
           className={`fixed inset-0 z-[60000] flex flex-col p-4 items-center justify-center ${
-            isDarkMode ? 'bg-slate-950/80' : 'bg-slate-900/40'
+            isDarkMode ? 'bg-[#0E130F]/85' : 'bg-[#1D241C]/45'
           }`}
           style={{ perspective: 1200 }}
         >
@@ -116,8 +116,8 @@ export default function UpdaterModal({ isDarkMode }) {
             transition={{ type: "spring", stiffness: 320, damping: 28 }}
             className={`relative max-w-lg w-full p-6 sm:p-7 rounded-[2rem] flex flex-col items-center text-center shadow-2xl border transition-colors will-change-transform overflow-hidden ${
               isDarkMode
-                ? 'bg-studio-obsidian/95 border-white/10 shadow-[0_0_80px_rgba(139,92,246,0.15)]'
-                : 'bg-white/95 border-white shadow-[0_0_80px_rgba(139,92,246,0.1)]'
+                ? 'bg-studio-obsidian/95 border-[#8AA282]/20 shadow-[0_0_80px_rgba(138,162,130,0.15)]'
+                : 'bg-[#FAF9F5]/95 border-[#E2DFD5] shadow-[0_0_80px_rgba(66,79,60,0.12)]'
             }`}
           >
             {/* Dynamic Spotlight Layers */}
@@ -130,7 +130,7 @@ export default function UpdaterModal({ isDarkMode }) {
               <motion.div
                 animate={{ y: [0, -4, 0] }}
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-studio-violet to-fuchsia-500 flex items-center justify-center shadow-lg shadow-studio-violet/30 mb-3"
+                className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-studio-forest to-studio-sage flex items-center justify-center shadow-lg shadow-studio-forest/30 mb-3"
               >
                 <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -163,7 +163,7 @@ export default function UpdaterModal({ isDarkMode }) {
                 <div className="w-full flex flex-col gap-3">
                   <div className={`w-full h-3 rounded-full overflow-hidden ${isDarkMode ? 'bg-white/10' : 'bg-slate-100'}`}>
                     <motion.div
-                      className="h-full bg-gradient-to-r from-studio-violet to-fuchsia-500"
+                      className="h-full bg-gradient-to-r from-studio-forest to-studio-sage"
                       initial={{ width: 0 }}
                       animate={{ width: `${progress}%` }}
                       transition={{ ease: "easeOut", duration: 0.2 }}
@@ -185,7 +185,7 @@ export default function UpdaterModal({ isDarkMode }) {
                   </button>
                   <button
                     onClick={handleUpdate}
-                    className="flex-[2] py-3.5 rounded-xl font-black text-xs uppercase tracking-widest bg-studio-violet hover:bg-fuchsia-500 text-white shadow-[0_0_20px_rgba(139,92,246,0.3)] hover:shadow-[0_0_30px_rgba(139,92,246,0.5)] hover:-translate-y-0.5 transition-all"
+                    className="flex-[2] py-3.5 rounded-xl font-black text-xs uppercase tracking-widest bg-studio-forest hover:bg-studio-olive text-[#FAF9F5] shadow-[0_0_20px_rgba(66,79,60,0.28)] hover:shadow-[0_0_28px_rgba(66,79,60,0.42)] hover:-translate-y-0.5 transition-all"
                   >
                     Update & Restart
                   </button>

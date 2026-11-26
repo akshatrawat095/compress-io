@@ -38,7 +38,7 @@ const NeuralText = React.memo(({ text, speed = 40, isDarkMode = true }) => {
     <motion.span
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className={`font-mono tracking-tight font-bold ${isDarkMode ? 'text-studio-violet' : 'text-slate-800'}`}
+      className={`font-mono tracking-tight font-bold ${isDarkMode ? 'text-studio-sage' : 'text-[#232921]'}`}
     >
       {displayText}
     </motion.span>

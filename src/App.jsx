@@ -30,10 +30,9 @@ export default function App() {
   const [currentIndex, setCurrentIndex] = useState(null);
   
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isIndeterminate, setIsIndeterminate] = useState(false); 
-  const [logs, setLogs] = useState("");
   
-  const [useGpu, setUseGpu] = useState(false);
+  const [useGpu, setUseGpu] = useState(true);
+  const [hwInfo, setHwInfo] = useState({ tier: "cpu", encoder: "libx265", label: "Checking...", can_dual_engine: false });
   const [dimSettings, setDimSettings] = useState({ width: "", height: "" });
 
   const [aiScale, setAiScale] = useState("4"); 
@@ -66,12 +65,26 @@ export default function App() {
 
   const [progress, setProgress] = useState(0);
   const [timeLeft, setTimeLeft] = useState(null);
-  const totalDurationRef = useRef(0);
   const compressStartTimeRef = useRef(0);
   const lastEtaRef = useRef(0);
+  const smoothedSpeedRef = useRef(0);
+  const isBatchPoolRef = useRef(false);
+  const batchTotalCountRef = useRef(0);
+  const batchCompletedRef = useRef(0);
+  const activeJobProgressRef = useRef({});
   const enhanceStartTimeRef = useRef(0);
   const totalPrepFrames = useRef(0);
   const isStoppingRef = useRef(false);
+
+  useEffect(() => {
+    invoke("detect_hardware_tier")
+      .then((info) => {
+        if (info) setHwInfo(info);
+      })
+      .catch(() => {
+        setHwInfo({ tier: "cpu", encoder: "libx265", label: "Tuned CPU", can_dual_engine: false });
+      });
+  }, []);
 
   const rawProgress = useMotionValue(0);
   const springProgress = useSpring(rawProgress, { stiffness: 60, damping: 18 });
@@ -89,48 +102,109 @@ export default function App() {
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
   
-  const glowBorder = useMotionTemplate`radial-gradient(${auraRadius}px circle at ${mouseX}px ${mouseY}px, rgba(139,92,246,${auraOpacity}), rgba(139,92,246,0.06) 60%, transparent 100%)`;
+  const glowBorder = useMotionTemplate`radial-gradient(${auraRadius}px circle at ${mouseX}px ${mouseY}px, rgba(138,162,130,${auraOpacity}), rgba(66,79,60,0.06) 60%, transparent 100%)`;
 
   const getFileType = useCallback((ext) => {
     if (['jpg', 'jpeg', 'png', 'webp', 'bmp', 'tiff'].includes(ext)) return 'IMG';
     if (['mp4', 'mkv', 'avi', 'mov', 'webm', 'flv', 'wmv', 'm4v', 'ts', 'ogv', 'gif'].includes(ext)) return 'VID';
+    if (['mp3', 'wav', 'flac', 'aac', 'm4a', 'ogg', 'opus', 'wma'].includes(ext)) return 'AUD';
     return 'DOC';
   }, []);
 
   const formatTime = useCallback((seconds) => {
-    if (seconds < 0) return "Calculating...";
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
+    if (!Number.isFinite(seconds) || seconds < 0) return "Calculating...";
+    const total = Math.max(0, Math.round(seconds));
+    if (total < 60) return `${total}s`;
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    if (h > 0) return `${h}h ${m}m`;
     return `${m}m ${s}s`;
   }, []);
 
 
   useEffect(() => {
-    let unlistenFfmpeg, unlistenEnhance;
+    let unlistenTelemetry, unlistenEnhance;
 
     const setupListeners = async () => {
-      unlistenFfmpeg = await listen("ffmpeg-progress", (event) => {
-        const line = event.payload;
-        const durationMatch = line.match(/Duration:\s+(\d{2}):(\d{2}):(\d{2})/);
-        if (durationMatch) {
-          const h = parseInt(durationMatch[1]);
-          const m = parseInt(durationMatch[2]);
-          const s = parseInt(durationMatch[3]);
-          totalDurationRef.current = (h * 3600) + (m * 60) + s;
+      unlistenTelemetry = await listen("ffmpeg-telemetry", (event) => {
+        const { job_id, current_secs, total_secs, speed, pass, total_passes, overall_percent, finalizing } = event.payload;
+
+        if (isBatchPoolRef.current) {
+          if (batchTotalCountRef.current <= 0) return;
+          activeJobProgressRef.current[job_id || "default"] = Math.min(99, Math.max(0, overall_percent));
+          const sumActive = Object.values(activeJobProgressRef.current).reduce((acc, v) => acc + v, 0);
+          const batchPct = Math.min(99, Math.round(((batchCompletedRef.current * 100) + sumActive) / batchTotalCountRef.current));
+          setProgress(batchPct);
+          rawProgress.set(batchPct);
+
+          const elapsedWall = (Date.now() - compressStartTimeRef.current) / 1000;
+          if (elapsedWall >= 2.0 && batchPct >= 2) {
+            const fraction = batchPct / 100;
+            const eta = elapsedWall * ((1 - fraction) / fraction);
+            setTimeLeft(`${batchCompletedRef.current}/${batchTotalCountRef.current} · ${formatTime(Math.max(1, Math.round(eta)))}`);
+          }
+          return;
         }
-        const timeMatch = line.match(/time=(\d{2}):(\d{2}):(\d{2})/);
-        if (timeMatch && totalDurationRef.current > 0) {
-          const h = parseInt(timeMatch[1]);
-          const m = parseInt(timeMatch[2]);
-          const s = parseInt(timeMatch[3]);
-          const currentSeconds = (h * 3600) + (m * 60) + s;
-          const percent = Math.round((currentSeconds / totalDurationRef.current) * 100);
-          setProgress(percent);
-          rawProgress.set(percent);
-          const remaining = totalDurationRef.current - currentSeconds;
-          setTimeLeft(formatTime(remaining));
+
+        const pct = Math.min(99, Math.max(0, Math.round(overall_percent)));
+        setProgress(pct);
+        rawProgress.set(pct);
+
+        if (finalizing && pct >= 99) {
+          setTimeLeft("Finalizing stream...");
+          return;
         }
-        setLogs(line);
+
+        const elapsedWall = (Date.now() - compressStartTimeRef.current) / 1000;
+        const passPrefix = total_passes === 2 ? `Pass ${pass}/2 · ` : "";
+
+        if (elapsedWall < 1.5 || total_secs <= 0 || current_secs < 0.25) {
+          setTimeLeft(`${passPrefix}Calculating...`);
+          return;
+        }
+
+        if (speed > 0.01) {
+          smoothedSpeedRef.current = smoothedSpeedRef.current > 0
+            ? (smoothedSpeedRef.current * 0.85) + (speed * 0.15)
+            : speed;
+        }
+
+        const effSpeed = smoothedSpeedRef.current;
+        const fraction = Math.max(0.005, overall_percent / 100);
+        const wallEta = elapsedWall * ((1 - fraction) / fraction);
+        let rawEta = -1;
+
+        if (total_passes === 2) {
+          if (pass === 1 && effSpeed > 0.01) {
+            const pass1Rem = Math.max(0, total_secs - current_secs) / effSpeed;
+            const pass2Est = (total_secs / effSpeed) * 1.1;
+            const speedEta = pass1Rem + pass2Est;
+            rawEta = fraction >= 0.08 ? (0.6 * speedEta + 0.4 * wallEta) : speedEta;
+          } else if (pass === 2 && effSpeed > 0.01) {
+            const pass2Rem = Math.max(0, total_secs - current_secs) / effSpeed;
+            rawEta = (0.7 * pass2Rem) + (0.3 * wallEta);
+          } else {
+            rawEta = wallEta;
+          }
+        } else {
+          const mediaRem = Math.max(0, total_secs - current_secs);
+          if (effSpeed > 0.01) {
+            const speedEta = mediaRem / effSpeed;
+            rawEta = fraction >= 0.03 ? (0.65 * speedEta + 0.35 * wallEta) : speedEta;
+          } else {
+            rawEta = wallEta;
+          }
+        }
+
+        if (rawEta >= 0 && Number.isFinite(rawEta)) {
+          const prev = lastEtaRef.current;
+          const dampedEta = (prev > 0 && Math.abs(rawEta - prev) < prev * 0.5)
+            ? (prev * 0.7) + (rawEta * 0.3)
+            : rawEta;
+          lastEtaRef.current = dampedEta;
+          setTimeLeft(`${passPrefix}${formatTime(Math.max(1, Math.round(dampedEta)))}`);
+        }
       });
 
       unlistenEnhance = await listen("enhance-progress", async (event) => {
@@ -138,7 +212,6 @@ export default function App() {
         const line = event.payload;
 
         if (line.startsWith("Turbo Engine Adjusted:")) {
-          setLogs(line);
           return;
         }
 
@@ -154,7 +227,6 @@ export default function App() {
             setProgress(Math.max(p, 1));
             rawProgress.set(Math.max(p, 1));
             setTimeLeft(`${currentFrame} / ${totalPrepFrames.current} Frames Recovered`);
-            setIsIndeterminate(false);
           }
           return;
         }
@@ -165,27 +237,21 @@ export default function App() {
           setProgress(10);
           rawProgress.set(10);
           setTimeLeft(`GPU Ready: Launching Turbo Engine...`);
-          setIsIndeterminate(false);
           return;
         }
 
         if (line.startsWith("Prep: Active:")) {
           const msg = line.replace("Prep: Active:", "");
           setTimeLeft(msg);
-          setLogs(msg);
-          setIsIndeterminate(true);
           return;
         }
 
         if (line.startsWith("Prep:")) {
-          setIsIndeterminate(true);
-          setLogs(line);
           return;
         }
 
         const match = line.match(/([\d.]+)%/);
         if (match) {
-          setIsIndeterminate(false);
           const rawPct = parseFloat(match[1]);
           // Map 0-100 AI progress to 10-95% of the total bar
           const mappedPercent = Math.round(10 + (rawPct * 0.85));
@@ -198,8 +264,6 @@ export default function App() {
             const remaining = totalEst - elapsed;
             setTimeLeft(formatTime(Math.round(remaining)));
           }
-        } else {
-          setLogs(line);
         }
       });
     };
@@ -207,22 +271,22 @@ export default function App() {
     setupListeners();
 
     return () => {
-      if (unlistenFfmpeg) unlistenFfmpeg();
+      if (unlistenTelemetry) unlistenTelemetry();
       if (unlistenEnhance) unlistenEnhance();
     };
-  }, [formatTime, rawProgress]);
+  }, [appMode, formatTime, rawProgress]);
 
   useEffect(() => {
     if (successData && successScope.current) {
       animateSuccess(successScope.current, 
-        { scale: [1, 1.05, 1], boxShadow: ["0 0 0px rgba(139,92,246,0)", "0 0 40px rgba(139,92,246,0.3)", "0 0 0px rgba(139,92,246,0)"] },
+        { scale: [1, 1.05, 1], boxShadow: ["0 0 0px rgba(138,162,130,0)", "0 0 40px rgba(138,162,130,0.32)", "0 0 0px rgba(138,162,130,0)"] },
         { duration: 0.8, times: [0, 0.5, 1] }
       );
     }
   }, [successData, animateSuccess, successScope]);
 
   const processFiles = useCallback(async (paths, currentMode) => {
-    const validExtensions = ['jpg', 'jpeg', 'png', 'webp', 'bmp', 'tiff', 'mp4', 'mkv', 'avi', 'mov', 'webm', 'flv', 'wmv', 'm4v', 'ts', 'ogv', 'gif'];
+    const validExtensions = ['jpg', 'jpeg', 'png', 'webp', 'bmp', 'tiff', 'mp4', 'mkv', 'avi', 'mov', 'webm', 'flv', 'wmv', 'm4v', 'ts', 'ogv', 'gif', 'mp3', 'wav', 'flac', 'aac', 'm4a', 'ogg', 'opus', 'wma'];
     const newFiles = paths
       .filter(filePath => {
         const ext = filePath.split('.').pop().toLowerCase();
@@ -247,9 +311,8 @@ export default function App() {
       return combined.filter((v, i, a) => a.findIndex(v2 => (v2.path === v.path)) === i);
     });
 
-    setLogs(""); setProgress(0); setTimeLeft(null);
-    totalDurationRef.current = 0; setDimSettings({ width: "", height: "" });
-    setUseGpu(false); setIsIndeterminate(false);
+    setProgress(0); setTimeLeft(null);
+    smoothedSpeedRef.current = 0; lastEtaRef.current = 0; setDimSettings({ width: "", height: "" });
   }, [getFileType]);
 
   useEffect(() => {
@@ -279,7 +342,7 @@ export default function App() {
   const handleFileSelect = useCallback(async () => {
     const selected = await open({
       multiple: true,
-      filters: [{ name: 'Media', extensions: ['jpg', 'jpeg', 'png', 'webp', 'mp4', 'mkv', 'avi', 'mov', 'webm'] }]
+      filters: [{ name: 'Media', extensions: ['jpg', 'jpeg', 'png', 'webp', 'mp4', 'mkv', 'avi', 'mov', 'webm', 'mp3', 'wav', 'flac', 'm4a', 'ogg'] }]
     });
     if (selected && selected.length > 0) {
       processFiles(selected, appMode);
@@ -290,25 +353,26 @@ export default function App() {
     try {
       await invoke("stop_job");
       isStoppingRef.current = true;
+      isBatchPoolRef.current = false;
+      activeJobProgressRef.current = {};
       setIsProcessing(false);
-      setIsIndeterminate(false);
       setTimeLeft("PROCESS HALTED");
       setProgress(0);
+      rawProgress.set(0);
       setFileQueue(prev => prev.map(f => f.status === 'processing' ? {...f, status: 'queued'} : f));
     } catch (e) {
       console.error("Stop failed:", e);
     }
-  }, []);
+  }, [rawProgress]);
 
   const startJob = useCallback(async () => {
     isStoppingRef.current = false;
-    setLogs(""); setProgress(0); setTimeLeft(null);
+    setProgress(0); setTimeLeft(null);
     if (fileQueue.length === 0) return;
 
-    isStoppingRef.current = false;
     setIsProcessing(true);
-    setLogs(""); setProgress(0); rawProgress.set(0); setTimeLeft(null);
-    totalDurationRef.current = 0; setIsIndeterminate(false);
+    setProgress(0); rawProgress.set(0); setTimeLeft(null);
+    smoothedSpeedRef.current = 0; lastEtaRef.current = 0;
 
     let outputFolder = "";
     let singleSavePath = "";
@@ -337,125 +401,258 @@ export default function App() {
       if (!outputFolder) { setIsProcessing(false); return; } 
     }
 
-    let finalPath = "";
     let localSuccessCount = 0; 
     let thisRunOrig = 0;
     let thisRunComp = 0;
 
-    for (let i = 0; i < fileQueue.length; i++) {
-      if (isStoppingRef.current) break;
-      const file = fileQueue[i];
-      if (file.status === 'done') continue;
+    const buildFinalPath = (file, idx) => {
+      if (fileQueue.length === 1) return singleSavePath;
+      let targetExt = file.ext;
+      if (appMode === "enhance" && file.type === "VID") targetExt = "mp4";
+      if (appMode === "enhance" && file.type === "IMG") targetExt = aiFormat;
+      if (appMode === "compress" && targetSizeEnabled && targetFormat !== "same") targetExt = targetFormat;
 
-      setCurrentIndex(i);
-      setFileQueue(prev => prev.map((f, idx) => idx === i ? {...f, status: 'processing'} : f));
-      
-      if (file.type === 'DOC') {
-         setFileQueue(prev => prev.map((f, idx) => idx === i ? {...f, status: 'error'} : f));
-         continue;
-      }
+      const prefix = appMode === "enhance" ? "enhanced" : "compressed";
+      const baseName = file.name.substring(0, file.name.lastIndexOf('.'));
+      const separator = outputFolder.includes('\\') ? '\\' : '/';
+      return `${outputFolder}${separator}${baseName}_${prefix}_${Date.now()}_${idx}.${targetExt}`;
+    };
 
-      if (fileQueue.length === 1) {
-        finalPath = singleSavePath;
-      } else {
-        let targetExt = file.ext;
-        if (appMode === "enhance" && file.type === "VID") targetExt = "mp4";
-        if (appMode === "enhance" && file.type === "IMG") targetExt = aiFormat;
-        if (appMode === "compress" && targetSizeEnabled && targetFormat !== "same") targetExt = targetFormat;
-        
-        const prefix = appMode === "enhance" ? "enhanced" : "compressed";
-        const baseName = file.name.substring(0, file.name.lastIndexOf('.'));
-        const separator = outputFolder.includes('\\') ? '\\' : '/';
-        finalPath = `${outputFolder}${separator}${baseName}_${prefix}_${Date.now()}_${i}.${targetExt}`;
-      }
+    const pendingIndices = fileQueue
+      .map((f, idx) => (f.status !== 'done' ? idx : -1))
+      .filter((idx) => idx !== -1);
 
-      let originalFileSize = 0;
-      try {
-        originalFileSize = await invoke("get_file_size", { path: file.path });
-      } catch (e) {
-        console.error("Could not get original file size", e);
-      }
+    const isPureImageBatch = appMode === "compress"
+      && pendingIndices.length > 1
+      && pendingIndices.every((idx) => fileQueue[idx].type === 'IMG');
 
-      try {
-        if (appMode === "enhance") {
-          enhanceStartTimeRef.current = Date.now();
-          if (file.type === 'VID') {
-              setIsIndeterminate(true); setProgress(0); setTimeLeft("Preparing AI Models...");
-              await invoke("enhance_video", { 
-                  input: file.path, 
-                  output: finalPath, 
-                  autoGpu: useGpu, 
-                  modelType: aiVideoModel, 
-                  aiScale: aiScale, 
-                  aiFps: aiFps,
-                  denoise: denoise,
-                  stabilize: stabilize,
-                  hyperDetail: hyperDetail,
-                  faceRestore: faceRestore,
-                  tileSize: tileSize
-              });
-          } else if (file.type === 'IMG') {
-              setIsIndeterminate(true); setProgress(0); setTimeLeft("Warming up GPU & Processing...");
-              await invoke("enhance_image", { 
-                  input: file.path, 
-                  output: finalPath, 
-                  scale: aiScale, 
-                  format: aiFormat, 
-                  modelType: aiVideoModel, 
-                  faceRestore: faceRestore,
-                  hyperDetail: hyperDetail,
-                  tileSize: tileSize
-              });
-          } else {
-              setFileQueue(prev => prev.map((f, idx) => idx === i ? {...f, status: 'error'} : f));
-              continue;
-          }
-        } else {
-          compressStartTimeRef.current = Date.now();
-          lastEtaRef.current = 0;
-          setIsIndeterminate(false); setProgress(0); setTimeLeft("Starting...");
-          if (targetSizeEnabled && targetSize) {
-             let targetKb = parseFloat(targetSize);
-             if (targetSizeUnit === "MB") targetKb *= 1024;
-             if (targetSizeUnit === "GB") targetKb *= 1024 * 1024;
-             
-             if (file.type === 'IMG') {
-                await invoke("compress_image_target_size", { input: file.path, output: finalPath, targetSizeKb: targetKb, width: dimSettings.width || "0", height: dimSettings.height || "0" });
-             } else {
-                await invoke("compress_video_target_size", { input: file.path, output: finalPath, targetSizeKb: targetKb, autoGpu: useGpu });
-             }
-          } else {
-             if (file.type === 'IMG') {
-               await invoke("compress_image", { input: file.path, output: finalPath, width: dimSettings.width || "0", height: dimSettings.height || "0" });
-             } else {
-               await invoke("compress_video", { input: file.path, output: finalPath, autoGpu: useGpu });
-             }
+    const isDualEngineVideoBatch = appMode === "compress"
+      && pendingIndices.length > 1
+      && !targetSizeEnabled
+      && useGpu
+      && hwInfo.can_dual_engine
+      && pendingIndices.every((idx) => fileQueue[idx].type === 'VID');
+
+    if (isPureImageBatch) {
+      isBatchPoolRef.current = true;
+      batchTotalCountRef.current = pendingIndices.length;
+      batchCompletedRef.current = 0;
+      activeJobProgressRef.current = {};
+      compressStartTimeRef.current = Date.now();
+
+      let cursor = 0;
+      const totalInBatch = pendingIndices.length;
+      const CONCURRENCY = Math.min(3, totalInBatch);
+      setTimeLeft(`0 / ${totalInBatch} Images`);
+
+      const worker = async () => {
+        while (!isStoppingRef.current) {
+          const myPos = cursor++;
+          if (myPos >= pendingIndices.length) break;
+          const idx = pendingIndices[myPos];
+          const file = fileQueue[idx];
+          const outPath = buildFinalPath(file, idx);
+
+          setFileQueue(prev => prev.map((f, j) => j === idx ? { ...f, status: 'processing' } : f));
+          let origSize = 0;
+          try { origSize = await invoke("get_file_size", { path: file.path }); } catch (_) {}
+
+          try {
+            if (targetSizeEnabled && targetSize) {
+              let targetKb = parseFloat(targetSize);
+              if (targetSizeUnit === "MB") targetKb *= 1024;
+              if (targetSizeUnit === "GB") targetKb *= 1024 * 1024;
+              await invoke("compress_image_target_size", { input: file.path, output: outPath, targetSizeKb: targetKb, width: dimSettings.width || "0", height: dimSettings.height || "0" });
+            } else {
+              await invoke("compress_image", { input: file.path, output: outPath, width: dimSettings.width || "0", height: dimSettings.height || "0" });
+            }
+            let compSize = 0;
+            try { compSize = await invoke("get_file_size", { path: outPath }); } catch (_) {}
+            localSuccessCount++;
+            thisRunOrig += origSize;
+            thisRunComp += compSize;
+            setFileQueue(prev => prev.map((f, j) => j === idx ? { ...f, status: 'done', finalPath: outPath, origSize, compSize } : f));
+          } catch (e) {
+            console.error(e);
+            setFileQueue(prev => prev.map((f, j) => j === idx ? { ...f, status: 'error' } : f));
+            setErrorToast(String(e));
+          } finally {
+            batchCompletedRef.current += 1;
+            const doneNow = batchCompletedRef.current;
+            const pct = Math.round((doneNow / totalInBatch) * 100);
+            setProgress(pct);
+            rawProgress.set(pct);
+            const elapsed = (Date.now() - compressStartTimeRef.current) / 1000;
+            if (doneNow < totalInBatch && elapsed > 0.3) {
+              const eta = (elapsed / doneNow) * (totalInBatch - doneNow);
+              setTimeLeft(`${doneNow}/${totalInBatch} · ${formatTime(Math.max(1, Math.round(eta)))}`);
+            }
           }
         }
+      };
+
+      await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
+      isBatchPoolRef.current = false;
+    } else if (isDualEngineVideoBatch) {
+      // Hybrid Dual-Engine Batch: Worker 0 drives dGPU NVENC, Worker 1 drives tuned CPU x265 concurrently
+      isBatchPoolRef.current = true;
+      batchTotalCountRef.current = pendingIndices.length;
+      batchCompletedRef.current = 0;
+      activeJobProgressRef.current = {};
+      compressStartTimeRef.current = Date.now();
+
+      let cursor = 0;
+      const totalInBatch = pendingIndices.length;
+      setTimeLeft(`Dual-Engine · 0/${totalInBatch}`);
+
+      const runDualWorker = async (workerUseGpu) => {
+        while (!isStoppingRef.current) {
+          const myPos = cursor++;
+          if (myPos >= pendingIndices.length) break;
+          const idx = pendingIndices[myPos];
+          const file = fileQueue[idx];
+          const outPath = buildFinalPath(file, idx);
+          const jid = `vid_${idx}`;
+
+          setFileQueue(prev => prev.map((f, j) => j === idx ? { ...f, status: 'processing' } : f));
+          let origSize = 0;
+          try { origSize = await invoke("get_file_size", { path: file.path }); } catch (_) {}
+
+          try {
+            await invoke("compress_video", { input: file.path, output: outPath, autoGpu: workerUseGpu, jobId: jid });
+            let compSize = 0;
+            try { compSize = await invoke("get_file_size", { path: outPath }); } catch (_) {}
+            localSuccessCount++;
+            thisRunOrig += origSize;
+            thisRunComp += compSize;
+            setFileQueue(prev => prev.map((f, j) => j === idx ? { ...f, status: 'done', finalPath: outPath, origSize, compSize } : f));
+          } catch (e) {
+            console.error(e);
+            setFileQueue(prev => prev.map((f, j) => j === idx ? { ...f, status: 'error' } : f));
+            setErrorToast(String(e));
+          } finally {
+            delete activeJobProgressRef.current[jid];
+            batchCompletedRef.current += 1;
+            if (batchCompletedRef.current >= totalInBatch) {
+              setProgress(100);
+              rawProgress.set(100);
+            }
+          }
+        }
+      };
+
+      await Promise.all([runDualWorker(true), runDualWorker(false)]);
+      isBatchPoolRef.current = false;
+      activeJobProgressRef.current = {};
+    } else {
+      isBatchPoolRef.current = false;
+      for (const i of pendingIndices) {
+        if (isStoppingRef.current) break;
+        const file = fileQueue[i];
+
+        setCurrentIndex(i);
+        setFileQueue(prev => prev.map((f, idx) => idx === i ? {...f, status: 'processing'} : f));
         
-        setProgress(100);
-        let compressedFileSize = 0;
-        try { compressedFileSize = await invoke("get_file_size", { path: finalPath }); } catch (e) {}
+        if (file.type === 'DOC') {
+           setFileQueue(prev => prev.map((f, idx) => idx === i ? {...f, status: 'error'} : f));
+           continue;
+        }
 
-        localSuccessCount++; 
-        thisRunOrig += originalFileSize;
-        thisRunComp += compressedFileSize;
-        setFileQueue(prev => prev.map((f, idx) => idx === i ? {...f, status: 'done', finalPath: finalPath, origSize: originalFileSize, compSize: compressedFileSize} : f));
+        const finalPath = buildFinalPath(file, i);
 
-      } catch (e) {
-        console.error(e);
-        setLogs("Error: " + e);
-        setFileQueue(prev => prev.map((f, idx) => idx === i ? {...f, status: 'error'} : f));
-        setErrorToast(String(e));
+        let originalFileSize = 0;
+        try {
+          originalFileSize = await invoke("get_file_size", { path: file.path });
+        } catch (e) {
+          console.error("Could not get original file size", e);
+        }
+
+        try {
+          if (appMode === "enhance") {
+            enhanceStartTimeRef.current = Date.now();
+            if (file.type === 'VID') {
+                setProgress(0); setTimeLeft("Preparing AI Models...");
+                await invoke("enhance_video", { 
+                    input: file.path, 
+                    output: finalPath, 
+                    autoGpu: useGpu, 
+                    modelType: aiVideoModel, 
+                    aiScale: aiScale, 
+                    aiFps: aiFps,
+                    denoise: denoise,
+                    stabilize: stabilize,
+                    hyperDetail: hyperDetail,
+                    faceRestore: faceRestore,
+                    tileSize: tileSize
+                });
+            } else if (file.type === 'IMG') {
+                setProgress(0); setTimeLeft("Warming up GPU & Processing...");
+                await invoke("enhance_image", { 
+                    input: file.path, 
+                    output: finalPath, 
+                    scale: aiScale, 
+                    format: aiFormat, 
+                    modelType: aiVideoModel, 
+                    faceRestore: faceRestore,
+                    hyperDetail: hyperDetail,
+                    tileSize: tileSize
+                });
+            } else {
+                setFileQueue(prev => prev.map((f, idx) => idx === i ? {...f, status: 'error'} : f));
+                continue;
+            }
+          } else {
+            compressStartTimeRef.current = Date.now();
+            lastEtaRef.current = 0;
+            smoothedSpeedRef.current = 0;
+            setProgress(0); rawProgress.set(0); setTimeLeft("Calculating...");
+            if (targetSizeEnabled && targetSize) {
+               let targetKb = parseFloat(targetSize);
+               if (targetSizeUnit === "MB") targetKb *= 1024;
+               if (targetSizeUnit === "GB") targetKb *= 1024 * 1024;
+               
+               if (file.type === 'IMG') {
+                  await invoke("compress_image_target_size", { input: file.path, output: finalPath, targetSizeKb: targetKb, width: dimSettings.width || "0", height: dimSettings.height || "0" });
+               } else if (file.type === 'AUD') {
+                  await invoke("compress_audio", { input: file.path, output: finalPath, jobId: "single" });
+               } else {
+                  await invoke("compress_video_target_size", { input: file.path, output: finalPath, targetSizeKb: targetKb, autoGpu: useGpu, jobId: "single" });
+               }
+            } else {
+               if (file.type === 'IMG') {
+                 await invoke("compress_image", { input: file.path, output: finalPath, width: dimSettings.width || "0", height: dimSettings.height || "0" });
+               } else if (file.type === 'AUD') {
+                 await invoke("compress_audio", { input: file.path, output: finalPath, jobId: "single" });
+               } else {
+                 await invoke("compress_video", { input: file.path, output: finalPath, autoGpu: useGpu, jobId: "single" });
+               }
+            }
+          }
+          
+          setProgress(100);
+          rawProgress.set(100);
+          let compressedFileSize = 0;
+          try { compressedFileSize = await invoke("get_file_size", { path: finalPath }); } catch (e) {}
+
+          localSuccessCount++; 
+          thisRunOrig += originalFileSize;
+          thisRunComp += compressedFileSize;
+          setFileQueue(prev => prev.map((f, idx) => idx === i ? {...f, status: 'done', finalPath: finalPath, origSize: originalFileSize, compSize: compressedFileSize} : f));
+
+        } catch (e) {
+          console.error(e);
+          setFileQueue(prev => prev.map((f, idx) => idx === i ? {...f, status: 'error'} : f));
+          setErrorToast(String(e));
+        }
       }
     }
 
-    setIsProcessing(false); setIsIndeterminate(false); setTimeLeft(null); setCurrentIndex(null);
+    setIsProcessing(false); setTimeLeft(null); setCurrentIndex(null);
     const savedLocation = fileQueue.length === 1 ? singleSavePath : outputFolder;
     if (localSuccessCount > 0) {
         setSuccessData({ count: localSuccessCount, path: savedLocation, origSize: thisRunOrig, compSize: thisRunComp });
     }
-  }, [fileQueue, appMode, aiFormat, aiScale, aiVideoModel, aiFps, useGpu, denoise, stabilize, hyperDetail, faceRestore, tileSize, dimSettings, targetSizeEnabled, targetSize, targetSizeUnit, targetFormat, rawProgress, formatTime]);
+  }, [fileQueue, appMode, aiFormat, aiScale, aiVideoModel, aiFps, useGpu, hwInfo, denoise, stabilize, hyperDetail, faceRestore, tileSize, dimSettings, targetSizeEnabled, targetSize, targetSizeUnit, targetFormat, rawProgress, formatTime]);
 
   const viewComparison = useCallback(async (file) => {
     setSliderPos(50);
@@ -482,14 +679,14 @@ export default function App() {
     setFileQueue(prev => {
       const newQueue = prev.filter((_, i) => i !== indexToRemove);
       if (newQueue.length === 0) {
-        setLogs(""); setProgress(0);
+        setProgress(0);
       }
       return newQueue;
     });
   }, []);
 
   const clearAll = useCallback(() => {
-      setFileQueue([]); setLogs(""); setProgress(0);
+      setFileQueue([]); setProgress(0);
   }, []);
 
   const closeComparison = useCallback(() => {
@@ -509,7 +706,7 @@ export default function App() {
       onDragLeave={() => setIsDragging(false)}
       onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
       onDrop={() => setIsDragging(false)}
-      className="relative min-h-screen w-full flex items-center justify-center p-4 md:p-8 overflow-hidden selection:bg-studio-violet/30"
+      className="relative min-h-screen w-full flex items-center justify-center p-4 md:p-8 overflow-hidden selection:bg-studio-sage/30"
     >
       <StudioBackground 
         progress={progress} 
@@ -542,7 +739,7 @@ export default function App() {
         initial="hidden"
         animate={showIntro ? "hidden" : "visible"}
         style={{ borderImage: glowBorder }}
-        className={`relative z-10 w-full max-w-xl studio-glass p-3 flex flex-col shadow-studio-2xl border transition-all duration-700 ${isDarkMode ? 'border-white/5 bg-studio-obsidian/40' : 'border-slate-200 bg-white/60'}`}
+        className={`relative z-10 w-full max-w-xl studio-glass p-3 flex flex-col shadow-studio-2xl border transition-all duration-700 ${isDarkMode ? 'border-[#8AA282]/15 bg-studio-obsidian/50' : 'border-[#E2DFD5] bg-[#FAF9F5]/75'}`}
       >
         <motion.div
           variants={{
@@ -582,17 +779,17 @@ export default function App() {
                   onClick={handleFileSelect} 
                   className={`p-2 rounded-[1rem] border-2 border-dashed flex flex-col items-center justify-center gap-1 group transition-all duration-700 min-h-[60px] w-full ${
                     isDarkMode 
-                      ? 'bg-studio-obsidian/40 border-white/5 hover:border-studio-violet/40 hover:bg-studio-violet/5' 
-                      : 'bg-slate-50 border-slate-200 hover:border-studio-violet/40 hover:bg-slate-100 shadow-sm'
+                      ? 'bg-studio-obsidian/45 border-[#8AA282]/18 hover:border-studio-sage/50 hover:bg-studio-sage/8' 
+                      : 'bg-[#F5F3EC]/90 border-[#D9D5C9] hover:border-studio-olive/45 hover:bg-[#EFECE4] shadow-sm'
                   }`}
                 >
                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-700 group-hover:rotate-90 group-hover:scale-110 ${
-                     isDarkMode ? 'bg-studio-violet/10 text-studio-violet' : 'bg-white text-studio-violet shadow-lg border border-slate-100'
+                     isDarkMode ? 'bg-studio-sage/15 text-studio-moss' : 'bg-[#FAF9F5] text-studio-forest shadow-md border border-[#E4E0D5]'
                    }`}>
                       <Icon name="plus" className="w-4 h-4" stroke={2.5} />
                    </div>
                    <div className="text-center px-4">
-                      <p className={`text-[9px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                      <p className={`text-[9px] font-black uppercase tracking-widest ${isDarkMode ? 'text-[#DCD9CF]' : 'text-[#394135]'}`}>
                         Select or Drop Media
                       </p>
                    </div>
@@ -601,10 +798,10 @@ export default function App() {
             ) : (
               <motion.div key="queue" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-2">
                  <div className="flex justify-between items-center px-2">
-                  <span className={`text-[9px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  <span className={`text-[9px] font-black uppercase tracking-widest ${isDarkMode ? 'text-[#9DA498]' : 'text-[#6A7164]'}`}>
                     {fileQueue.length} {fileQueue.length === 1 ? 'FILE' : 'FILES'} QUEUED
                   </span>
-                  <button onClick={clearAll} disabled={isProcessing} className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-rose-500 hover:text-rose-600 transition-colors disabled:opacity-30">
+                  <button onClick={clearAll} disabled={isProcessing} className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-[#B85442] hover:text-[#9A3F30] transition-colors disabled:opacity-30">
                     <Icon name="trash" className="w-3 h-3" />
                     Clear
                   </button>
@@ -636,6 +833,7 @@ export default function App() {
              hasVideos={hasVideos}
              useGpu={useGpu}
              setUseGpu={setUseGpu}
+             hwInfo={hwInfo}
              dimSettings={dimSettings}
              setDimSettings={setDimSettings}
              aiVideoModel={aiVideoModel}
@@ -675,7 +873,7 @@ export default function App() {
 
       <AnimatePresence>
         {showComparison && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={`fixed inset-0 z-[50000] backdrop-blur-2xl flex flex-col p-8 ${isDarkMode ? 'bg-studio-obsidian/95' : 'bg-slate-50/95'}`}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={`fixed inset-0 z-[50000] backdrop-blur-2xl flex flex-col p-8 ${isDarkMode ? 'bg-studio-obsidian/95' : 'bg-studio-cream/95'}`}>
              <header className="flex justify-between items-center mb-8">
                <h2 className={`text-2xl font-black tracking-widest uppercase ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Direct Preview Comparison</h2>
                <button onClick={closeComparison} className={`px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${isDarkMode ? 'bg-white/5 hover:bg-white/10 text-white' : 'bg-white border border-slate-200 text-slate-600 shadow-sm hover:bg-slate-50'}`}>Close Suite</button>
@@ -700,7 +898,7 @@ export default function App() {
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }} 
-            className={`fixed inset-0 z-[10000] flex justify-center p-2 sm:p-4 overflow-y-auto ${isDarkMode ? 'bg-slate-900/80 backdrop-blur-md' : 'bg-slate-900/50 backdrop-blur-md'}`}
+            className={`fixed inset-0 z-[10000] flex justify-center p-2 sm:p-4 overflow-y-auto ${isDarkMode ? 'bg-[#0E130F]/85 backdrop-blur-md' : 'bg-[#1D241C]/45 backdrop-blur-md'}`}
           >
             <motion.div 
                ref={successScope}
@@ -719,11 +917,11 @@ export default function App() {
                   transition={{ type: "spring", delay: 0.1 }}
                   className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 shadow-lg z-10 ${
                   appMode === 'compress' 
-                  ? 'bg-gradient-to-br from-indigo-500 to-purple-600 shadow-indigo-500/40' 
-                  : 'bg-gradient-to-br from-studio-violet to-studio-rose shadow-studio-rose/40'
+                  ? 'bg-gradient-to-br from-studio-olive to-studio-forest shadow-[0_8px_24px_rgba(66,79,60,0.38)]' 
+                  : 'bg-gradient-to-br from-[#747B4D] to-studio-olive shadow-[0_8px_24px_rgba(102,107,84,0.35)]'
                }`}>
                   <Icon 
-                    name={appMode === 'compress' ? 'zap' : 'sparkles'} 
+                    name={appMode === 'compress' ? 'compressLogo' : 'sparkles'} 
                     className="w-8 h-8 text-white" 
                     stroke={1.5} 
                   />
@@ -762,7 +960,7 @@ export default function App() {
                       initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
                       className="w-full mb-4 z-10"
                     >
-                       <div className={`p-4 rounded-[1.5rem] border text-left flex flex-col gap-2 relative overflow-hidden shadow-inner ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+                       <div className={`p-4 rounded-[1.5rem] border text-left flex flex-col gap-2 relative overflow-hidden shadow-inner ${isDarkMode ? 'bg-white/5 border-[#8AA282]/15' : 'bg-[#F2F0EB] border-[#DFDCD2]'}`}>
                           
                           <div className="flex justify-between items-center">
                              <span className={`text-[9px] font-black uppercase tracking-widest opacity-60 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Original</span>
@@ -770,7 +968,7 @@ export default function App() {
                           </div>
                           <div className="flex justify-between items-center">
                              <span className={`text-[9px] font-black uppercase tracking-widest opacity-60 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Compressed</span>
-                             <span className={`text-base font-black font-mono text-studio-rose drop-shadow-sm`}>
+                             <span className={`text-base font-black font-mono drop-shadow-sm ${isDarkMode ? 'text-studio-moss' : 'text-studio-forest'}`}>
                                 <NumberFlow value={parseFloat(compMB)} format={{ minimumFractionDigits: 1, maximumFractionDigits: 1 }} /> MB
                              </span>
                           </div>
@@ -786,7 +984,7 @@ export default function App() {
                                initial={{ width: "0%" }}
                                animate={{ width: `${savedPercent}%` }}
                                transition={{ duration: 1.2, ease: "easeOut", delay: 0.6 }}
-                               className="absolute left-0 top-0 h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.8)] rounded-full"
+                               className="absolute left-0 top-0 h-full bg-gradient-to-r from-studio-forest via-studio-olive to-studio-sage shadow-[0_0_8px_rgba(138,162,130,0.6)] rounded-full"
                              />
                           </div>
                        </div>
@@ -794,7 +992,7 @@ export default function App() {
                        {funMetric && (
                           <motion.div 
                             initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.8, type: "spring" }}
-                            className={`mt-3 px-3 py-2 rounded-xl border flex items-center justify-center gap-2 shadow-sm ${isDarkMode ? 'bg-purple-500/10 border-purple-500/30 text-purple-300' : 'bg-purple-50 border-purple-200 text-purple-700'}`}>
+                            className={`mt-3 px-3 py-2 rounded-xl border flex items-center justify-center gap-2 shadow-sm ${isDarkMode ? 'bg-studio-sage/12 border-studio-sage/30 text-studio-moss' : 'bg-[#EAEFE6] border-[#CED7C7] text-studio-forest'}`}>
                              <motion.div animate={{ rotate: [0, 15, -15, 0] }} transition={{ repeat: Infinity, duration: 2, repeatDelay: 1 }}>
                                <Icon name="lightbulb" className="w-4 h-4 flex-shrink-0 drop-shadow-md" />
                              </motion.div>
@@ -827,7 +1025,7 @@ export default function App() {
                      initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }}
                      onClick={() => setSuccessData(null)} 
                      className={`flex-1 p-3 rounded-[1rem] font-black uppercase tracking-widest text-[10px] flex items-center justify-center hover:scale-[1.02] active:scale-95 transition-all shadow-lg ${
-                       isDarkMode ? 'bg-white text-slate-900 hover:shadow-white/20' : 'bg-slate-900 text-white hover:shadow-slate-900/20'
+                       isDarkMode ? 'bg-[#F2F0EB] text-[#1D241C] hover:shadow-white/15' : 'bg-studio-forest text-[#FAF9F5] hover:bg-studio-olive shadow-[0_8px_20px_rgba(66,79,60,0.28)]'
                      }`}
                    >
                      DONE
@@ -848,7 +1046,7 @@ export default function App() {
             className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none"
           >
             <div className={`absolute inset-0 backdrop-blur-xl transition-colors duration-700 ${
-              isDarkMode ? 'bg-slate-950/90' : (appMode === 'compress' ? 'bg-studio-violet/15' : 'bg-studio-rose/15')
+              isDarkMode ? 'bg-[#0E130F]/92' : 'bg-studio-moss/20'
             }`} />
             
             <motion.div 
@@ -865,7 +1063,7 @@ export default function App() {
                     animate={{ x: [-2, 0, -2], y: [-2, 0, -2], opacity: [0.3, 0.6, 0.3] }}
                     transition={{ duration: 4, repeat: Infinity }}
                     className={`absolute top-0 left-0 w-14 h-14 border-t-2 border-l-2 shadow-[0_0_15px_rgba(255,255,255,0.05)] ${
-                      appMode === 'compress' ? 'border-studio-violet' : 'border-studio-rose'
+                      isDarkMode ? 'border-studio-sage' : 'border-studio-forest'
                     }`} 
                  />
                  {/* Top Right */}
@@ -873,7 +1071,7 @@ export default function App() {
                     animate={{ x: [2, 0, 2], y: [-2, 0, -2], opacity: [0.3, 0.6, 0.3] }}
                     transition={{ duration: 4, repeat: Infinity }}
                     className={`absolute top-0 right-0 w-14 h-14 border-t-2 border-r-2 shadow-[0_0_15px_rgba(255,255,255,0.05)] ${
-                      appMode === 'compress' ? 'border-studio-violet' : 'border-studio-rose'
+                      isDarkMode ? 'border-studio-sage' : 'border-studio-forest'
                     }`} 
                  />
                  {/* Bottom Left */}
@@ -881,7 +1079,7 @@ export default function App() {
                     animate={{ x: [-2, 0, -2], y: [2, 0, 2], opacity: [0.3, 0.6, 0.3] }}
                     transition={{ duration: 4, repeat: Infinity }}
                     className={`absolute bottom-0 left-0 w-14 h-14 border-b-2 border-l-2 shadow-[0_0_15px_rgba(255,255,255,0.05)] ${
-                      appMode === 'compress' ? 'border-studio-violet' : 'border-studio-rose'
+                      isDarkMode ? 'border-studio-sage' : 'border-studio-forest'
                     }`} 
                  />
                  {/* Bottom Right */}
@@ -889,7 +1087,7 @@ export default function App() {
                     animate={{ x: [2, 0, 2], y: [2, 0, 2], opacity: [0.3, 0.6, 0.3] }}
                     transition={{ duration: 4, repeat: Infinity }}
                     className={`absolute bottom-0 right-0 w-14 h-14 border-b-2 border-r-2 shadow-[0_0_15px_rgba(255,255,255,0.05)] ${
-                      appMode === 'compress' ? 'border-studio-violet' : 'border-studio-rose'
+                      isDarkMode ? 'border-studio-sage' : 'border-studio-forest'
                     }`} 
                  />
 
@@ -898,10 +1096,10 @@ export default function App() {
                     <div className={`w-28 h-28 rounded-3xl flex items-center justify-center border border-white/20 studio-glass shadow-2xl ${
                       isDarkMode 
                       ? 'bg-white/5 shadow-[0_0_40px_rgba(0,0,0,0.5)]' 
-                      : (appMode === 'compress' ? 'bg-studio-violet/10' : 'bg-studio-rose/10')
+                      : 'bg-studio-sage/18'
                     }`}>
                       <Icon name="studioUpload" className={`w-12 h-12 ${
-                        appMode === 'compress' ? 'text-studio-violet' : 'text-studio-rose'
+                        isDarkMode ? 'text-studio-moss' : 'text-studio-forest'
                       } ${isDarkMode ? 'brightness-125' : ''}`} stroke={1.2} />
                     </div>
                     
@@ -909,7 +1107,7 @@ export default function App() {
                        <h2 className={`text-3xl font-black uppercase tracking-[0.3em] text-center ${
                          isDarkMode ? 'text-white' : 'text-slate-900'
                        } ${
-                         appMode === 'compress' ? 'drop-shadow-[0_0_20px_rgba(139,92,246,0.6)]' : 'drop-shadow-[0_0_20px_rgba(244,63,94,0.6)]'
+                         'drop-shadow-[0_0_20px_rgba(138,162,130,0.45)]'
                        }`}>
                          DROP HERE
                        </h2>

@@ -34,9 +34,9 @@ const StudioBackground = React.memo(({
   const auraOpacity = useTransform(springProgress, [0, 100], [0.55, 0.95]);
   const auraRotate = useTransform(springProgress, [0, 100], [0, 360]);
 
-  const bgBase = isDarkMode ? "#030712" : "#f8fafc";
-  const accent1 = appMode === "enhance" ? "#f43f5e" : "#8b5cf6";
-  const accent2 = appMode === "enhance" ? "#fb7185" : "#a78bfa";
+  const bgBase = isDarkMode ? "#0E130F" : "#F2F0EB";
+  const accent1 = appMode === "enhance" ? "#747B4D" : "#8AA282";
+  const accent2 = appMode === "enhance" ? "#B2AC88" : "#9DB290";
 
   // 🧪 Chromatic Aberration: Color splits during heavy processing
   const redTransform = useTransform(springProgress, [0, 100], ["0px 0px", "8px -8px"]);
@@ -59,7 +59,7 @@ const StudioBackground = React.memo(({
         layout
         initial={false}
         animate={{ 
-          opacity: isProcessing ? [0.1, 0.25, 0.1] : (appMode === 'enhance' ? 0.14 : 0.08),
+          opacity: isProcessing ? [0.1, 0.25, 0.1] : (appMode === 'enhance' ? 0.14 : 0.09),
           scale: isProcessing ? [1.0, 1.08, 1.0] : 1,
           backgroundSize: appMode === 'enhance' ? "40px 40px" : "60px 60px"
         }}
@@ -71,8 +71,8 @@ const StudioBackground = React.memo(({
         className="absolute inset-0 z-0"
         style={{
           backgroundImage: isDarkMode 
-            ? "radial-gradient(circle at 1.5px 1.5px, rgba(255,255,255,0.12) 1.5px, transparent 0)"
-            : "radial-gradient(circle at 1.5px 1.5px, rgba(139,92,246,0.18) 1.5px, transparent 0)",
+            ? "radial-gradient(circle at 1.5px 1.5px, rgba(178,172,136,0.14) 1.5px, transparent 0)"
+            : "radial-gradient(circle at 1.5px 1.5px, rgba(66,79,60,0.14) 1.5px, transparent 0)",
         }}
       />
 
@@ -86,7 +86,7 @@ const StudioBackground = React.memo(({
             transition={{ duration: 0.8 }}
             className="absolute inset-0 z-0"
             style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M50 0 L100 25 L100 75 L50 100 L0 75 L0 25 Z' fill='none' stroke='${isDarkMode ? 'white' : 'black'}' stroke-width='0.5' opacity='0.5'/%3E%3C/svg%3E")`,
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M50 0 L100 25 L100 75 L50 100 L0 75 L0 25 Z' fill='none' stroke='${isDarkMode ? '%239DB290' : '%23424F3C'}' stroke-width='0.5' opacity='0.5'/%3E%3C/svg%3E")`,
               backgroundSize: "100px 86px"
             }}
           />
@@ -102,23 +102,23 @@ const StudioBackground = React.memo(({
           y: parallaxY,
         }}
       >
-        {/* Chromatic Layer: Red Channel */}
+        {/* Warm Lichen Layer */}
         <motion.div
           className="absolute rounded-full"
           style={{
             width: "85vw",
             height: "85vw",
-            background: `radial-gradient(circle, #f43f5e55 0%, transparent 60%)`,
+            background: `radial-gradient(circle, #B2AC8855 0%, transparent 60%)`,
             filter: "blur(100px)",
             scale: auraScale,
-            opacity: isProcessing ? 0.4 : 0,
+            opacity: isProcessing ? 0.42 : 0,
             x: redTransform,
-            mixBlendMode: "screen",
+            mixBlendMode: isDarkMode ? "screen" : "normal",
             willChange: "transform, opacity",
           }}
         />
 
-        {/* Main Blob: Dynamic Multi-Accent Core */}
+        {/* Main Blob: Dynamic Warm Botanical Sage Core */}
         <motion.div
           animate={{
             x: isProcessing ? [0, 40, -40, 0] : [0, 60, 0],
@@ -133,26 +133,28 @@ const StudioBackground = React.memo(({
           style={{
             width: "80vw",
             height: "80vw",
-            background: `radial-gradient(circle, ${accent1}aa 0%, ${accent2}66 40%, transparent 70%)`,
-            filter: `blur(90px)`,
+            background: isDarkMode
+              ? `radial-gradient(circle, ${accent1}66 0%, #424F3C44 45%, transparent 72%)`
+              : `radial-gradient(circle, ${accent1}55 0%, ${accent2}44 42%, transparent 72%)`,
+            filter: `blur(95px)`,
             scale: auraScale,
             opacity: auraOpacity,
             willChange: "transform, opacity",
           }}
         />
 
-        {/* Chromatic Layer: Blue Channel */}
+        {/* Deep Forest Shadow Layer */}
         <motion.div
           className="absolute rounded-full"
           style={{
             width: "85vw",
             height: "85vw",
-            background: `radial-gradient(circle, #3b82f655 0%, transparent 60%)`,
+            background: `radial-gradient(circle, #666B5450 0%, transparent 60%)`,
             filter: "blur(100px)",
             scale: auraScale,
-            opacity: isProcessing ? 0.4 : 0,
+            opacity: isProcessing ? 0.38 : 0,
             x: blueTransform,
-            mixBlendMode: "screen",
+            mixBlendMode: isDarkMode ? "screen" : "normal",
             willChange: "transform, opacity",
           }}
         />
@@ -169,8 +171,8 @@ const StudioBackground = React.memo(({
       >
         <div className={`w-[80vw] h-[80vw] rounded-full blur-[140px] transition-colors duration-700 ${
           appMode === 'compress' 
-          ? (isDarkMode ? 'bg-studio-violet/40' : 'bg-studio-violet/20') 
-          : (isDarkMode ? 'bg-studio-rose/40' : 'bg-studio-rose/20')
+          ? (isDarkMode ? 'bg-studio-sage/35' : 'bg-studio-moss/25') 
+          : (isDarkMode ? 'bg-studio-olive/35' : 'bg-studio-lichen/25')
         }`} />
       </motion.div>
 
@@ -181,7 +183,7 @@ const StudioBackground = React.memo(({
         style={{
           background: useTransform(
             [mouseX, mouseY],
-            ([x, y]) => `radial-gradient(400px circle at ${x}px ${y}px, ${appMode === 'compress' ? 'rgba(139,92,246,0.15)' : 'rgba(244,63,94,0.15)'}, transparent 80%)`
+            ([x, y]) => `radial-gradient(400px circle at ${x}px ${y}px, ${appMode === 'compress' ? 'rgba(138,162,130,0.18)' : 'rgba(102,107,84,0.18)'}, transparent 80%)`
           )
         }}
       />

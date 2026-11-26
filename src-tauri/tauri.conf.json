@@ -1,6 +1,6 @@
 {
   "productName": "compress-io",
-  "version": "0.1.59",
+  "version": "0.1.60",
   "identifier": "com.compress.io",
   "build": {
     "frontendDist": "../dist",
@@ -25,7 +25,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "dmg", "appimage", "deb"],
+    "targets": ["nsis", "dmg", "app", "appimage", "deb"],
     "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",

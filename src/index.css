@@ -6,22 +6,24 @@
   --font-display: "Outfit", sans-serif;
   --font-sans: "Plus Jakarta Sans", sans-serif;
 
-  --color-studio-violet: #8b5cf6;
-  --color-studio-rose: #f43f5e;
-  --color-studio-obsidian: #030712;
-  
-  --color-vibrant-violet: #a78bfa;
-  --color-vibrant-rose: #fb7185;
+  /* Pantone-validated Botanical Warm Sage & Muted Forest Palette */
+  --color-studio-forest: #424f3c;   /* PANTONE 19-0315 TCX Black Forest */
+  --color-studio-olive: #666b54;    /* PANTONE 18-0316 TCX Olivine */
+  --color-studio-sage: #8aa282;     /* PANTONE 16-0220 TCX Mistletoe */
+  --color-studio-moss: #9db290;     /* PANTONE 7494 C Warm Sage */
+  --color-studio-lichen: #b2ac88;   /* PANTONE 15-0318 TCX Sage Green */
+  --color-studio-cream: #f2f0eb;    /* PANTONE 11-0602 TCX Warm Alabaster */
+  --color-studio-obsidian: #0e130f; /* Deep Warm Pine-Moss Obsidian */
 
   --radius-studio: 2.5rem;
   
-  --shadow-studio-xl: 0 0 80px rgba(0, 0, 0, 0.6), 0 0 30px rgba(139, 92, 246, 0.1);
-  --shadow-inner-glow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+  --shadow-studio-xl: 0 24px 64px rgba(42, 48, 38, 0.16), 0 0 32px rgba(138, 162, 130, 0.14);
+  --shadow-inner-glow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
 }
 
 @layer base {
   body {
-    @apply m-0 overflow-hidden h-screen font-sans text-slate-800 dark:text-slate-100 selection:bg-studio-violet/30;
+    @apply m-0 overflow-hidden h-screen font-sans text-[#232921] dark:text-[#eceae2] selection:bg-studio-sage/30;
     background-color: transparent;
   }
 }
@@ -29,12 +31,12 @@
 @layer components {
   /* Dynamic Glass Panel Utility v2.0 */
   .studio-glass {
-    @apply bg-white/60 dark:bg-slate-900/40 backdrop-blur-[15px] border border-white/20 dark:border-white/10 shadow-studio-xl rounded-[2.5rem] transition-all duration-500 ease-out;
+    @apply bg-[#faf8f4]/75 dark:bg-[#131a14]/65 backdrop-blur-[16px] border border-[#e4e0d5]/80 dark:border-[#8aa282]/15 shadow-studio-xl rounded-[2.5rem] transition-all duration-500 ease-out;
     box-shadow: var(--shadow-studio-xl), var(--shadow-inner-glow);
   }
 
   .studio-text-glow {
-    text-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+    text-shadow: 0 0 20px rgba(102, 107, 84, 0.24);
   }
 
   /* Ultra-sleek modern custom scrollbar */
@@ -46,14 +48,14 @@
     background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(139, 92, 246, 0.25);
+    background: rgba(102, 107, 84, 0.28);
     border-radius: 9999px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(139, 92, 246, 0.5);
+    background: rgba(66, 79, 60, 0.5);
   }
   .custom-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: rgba(139, 92, 246, 0.25) transparent;
+    scrollbar-color: rgba(102, 107, 84, 0.28) transparent;
   }
 }

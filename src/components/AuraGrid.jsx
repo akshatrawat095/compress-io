@@ -11,7 +11,7 @@ const AuraGrid = () => {
         animate={{ opacity: 0.4 }}
         transition={{ duration: 2 }}
         style={{
-          background: 'radial-gradient(circle at 50% 120%, rgba(225, 29, 72, 0.25) 0%, rgba(30, 27, 75, 0.5) 40%, transparent 70%)',
+          background: 'radial-gradient(circle at 50% 120%, rgba(102, 107, 84, 0.25) 0%, rgba(30, 38, 28, 0.5) 40%, transparent 70%)',
         }}
       />
       <motion.div
@@ -22,7 +22,7 @@ const AuraGrid = () => {
         }}
         transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
         style={{
-          background: 'radial-gradient(circle at 20% 0%, rgba(225, 29, 72, 0.15) 0%, transparent 50%)',
+          background: 'radial-gradient(circle at 20% 0%, rgba(138, 162, 130, 0.18) 0%, transparent 50%)',
         }}
       />
       <motion.div
@@ -33,7 +33,7 @@ const AuraGrid = () => {
         }}
         transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
         style={{
-          background: 'radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.2) 0%, transparent 50%)',
+          background: 'radial-gradient(circle at 80% 80%, rgba(178, 172, 136, 0.2) 0%, transparent 50%)',
         }}
       />
 
@@ -52,7 +52,7 @@ const AuraGrid = () => {
 
       {/* Grid Scanline effect */}
       <motion.div
-        className="absolute left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-studio-rose/30 to-transparent"
+        className="absolute left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-studio-sage/35 to-transparent"
         animate={{ top: ['0%', '100%'] }}
         transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
       />
