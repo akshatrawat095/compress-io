@@ -49,9 +49,10 @@ jobs:
             ---
 
             ### ✨ What's New
-            - **Custom Frameless Windows Installer:** Replaced the stock NSIS wizard with a bespoke botanical-sage setup window featuring 1-click install & launch, native Desktop & Start Menu shortcuts, Windows Apps uninstaller integration, and headless `/S` + `/P` update support.
-            - **Decoupled SHA-256 FFmpeg Runtime Cache:** Moved FFmpeg out of app bundles into a permanent **SHA-256 verified** local cache (`EngineSetupModal`) downloaded once on first run — shrinking the Windows installer from ~51 MiB down to ~6.4 MiB and reducing macOS & Linux update sizes too.
+            - **Custom Frameless Windows Installer:** Replaced the stock NSIS wizard with a bespoke botanical-sage WebView2 setup window featuring custom install location selection, live disk space checks, Explorer right-click integration (`Compress with Compress I/O`), atomic rollback, UAC elevation, full Uninstall cleanup, and headless `/S` + `/P` update support.
+            - **Decoupled SHA-256 FFmpeg Runtime Cache:** Moved FFmpeg out of app bundles into a permanent **SHA-256 verified** local cache (`EngineSetupModal`) downloaded once on first run — shrinking the Windows installer from ~51 MiB down to ~6.5 MiB and reducing macOS & Linux update sizes too.
             - **VS Code-Style Silent Background Updater:** Pre-downloads and verifies updates quietly in the background with a non-intrusive `Update` header pill (`DashboardHeader`) and popup-free Windows installation (`installMode: quiet`).
+            - **Post-Install "What's New" Release Notes:** Presents release highlights once automatically after installing or upgrading and keeps changelog notes accessible anytime via the clickable header version badge.
             - **Refreshed Studio App Icons:** Updated Windows `.ico`, macOS `.icns`, Linux PNGs, and Windows Store icons to match the botanical forest-sage `I/O` emblem.
             - **Code & Reliability Hardening:** Resolved 27 static-analysis cleanup items across React components and hardened Tauri event listeners.
 
@@ -173,9 +174,10 @@ jobs:
             ---
 
             ### ✨ What's New
-            - **Custom Frameless Windows Installer:** Replaced the stock NSIS wizard with a bespoke botanical-sage setup window featuring 1-click install & launch, native Desktop & Start Menu shortcuts, Windows Apps uninstaller integration, and headless `/S` + `/P` update support.
-            - **Decoupled SHA-256 FFmpeg Runtime Cache:** Moved FFmpeg out of app bundles into a permanent **SHA-256 verified** local cache (`EngineSetupModal`) downloaded once on first run — shrinking the Windows installer from ~51 MiB down to ~6.4 MiB and reducing macOS & Linux update sizes too.
+            - **Custom Frameless Windows Installer:** Replaced the stock NSIS wizard with a bespoke botanical-sage WebView2 setup window featuring custom install location selection, live disk space checks, Explorer right-click integration (`Compress with Compress I/O`), atomic rollback, UAC elevation, full Uninstall cleanup, and headless `/S` + `/P` update support.
+            - **Decoupled SHA-256 FFmpeg Runtime Cache:** Moved FFmpeg out of app bundles into a permanent **SHA-256 verified** local cache (`EngineSetupModal`) downloaded once on first run — shrinking the Windows installer from ~51 MiB down to ~6.5 MiB and reducing macOS & Linux update sizes too.
             - **VS Code-Style Silent Background Updater:** Pre-downloads and verifies updates quietly in the background with a non-intrusive `Update` header pill (`DashboardHeader`) and popup-free Windows installation (`installMode: quiet`).
+            - **Post-Install "What's New" Release Notes:** Presents release highlights once automatically after installing or upgrading and keeps changelog notes accessible anytime via the clickable header version badge.
             - **Refreshed Studio App Icons:** Updated Windows `.ico`, macOS `.icns`, Linux PNGs, and Windows Store icons to match the botanical forest-sage `I/O` emblem.
             - **Code & Reliability Hardening:** Resolved 27 static-analysis cleanup items across React components and hardened Tauri event listeners.
 

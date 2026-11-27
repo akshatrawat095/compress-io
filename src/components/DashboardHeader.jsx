@@ -8,19 +8,35 @@ const DashboardHeader = React.memo(({
   isDarkMode, 
   setIsDarkMode, 
   isProcessing,
-  updater
+  updater,
+  appVersion,
+  onOpenReleaseNotes
 }) => {
   const showUpdaterPill = updater?.updateInfo && updater.status !== 'idle';
   return (
     <header className="w-full flex flex-col gap-6">
       <div className="w-full flex justify-between items-center px-1">
-         <div className="flex items-center gap-3 group">
+         <div className="flex items-center gap-2.5 group">
             <div className="p-2.5 bg-gradient-to-br from-studio-olive to-studio-forest rounded-xl shadow-[0_6px_18px_rgba(66,79,60,0.28)] ring-1 ring-white/25 group-hover:scale-105 transition-all duration-500">
                <Icon name={appMode === 'compress' ? 'compressLogo' : 'sparkles'} className="w-5 h-5 text-[#FAF9F5]" stroke={2.1} />
             </div>
             <h1 className={`text-xl font-black tracking-tighter uppercase font-display studio-text-glow transition-colors ${isDarkMode ? 'text-[#F2F0EB]' : 'text-[#222820]'}`}>
                {appMode === 'compress' ? 'Compress' : 'Enhance'} <span className={isDarkMode ? 'text-studio-sage' : 'text-studio-forest'}>I/O</span>
             </h1>
+            {appVersion && onOpenReleaseNotes && (
+              <button
+                type="button"
+                onClick={onOpenReleaseNotes}
+                title="View release notes"
+                className={`px-2 py-0.5 rounded-full border text-[9px] font-mono font-bold tracking-wider transition-all cursor-pointer ${
+                  isDarkMode
+                    ? 'bg-studio-sage/10 border-studio-sage/25 text-studio-moss hover:bg-studio-sage/20'
+                    : 'bg-[#F2F0EB] border-[#DCD8CD] text-studio-forest hover:bg-[#EAE7DF]'
+                }`}
+              >
+                v{appVersion}
+              </button>
+            )}
          </div>
          
          <div className="flex items-center gap-2">
