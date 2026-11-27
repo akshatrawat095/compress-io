@@ -307,6 +307,17 @@ export default function App() {
   }, [getFileType]);
 
   useEffect(() => {
+    invoke("take_startup_files")
+      .then((files) => {
+        if (Array.isArray(files) && files.length > 0) {
+          setShowIntro(false);
+          processFiles(files, appMode);
+        }
+      })
+      .catch(() => {});
+  }, [appMode, processFiles]);
+
+  useEffect(() => {
     let unlistenEnter, unlistenLeave, unlistenDrop;
 
     const setupDragListeners = async () => {

@@ -24,6 +24,7 @@ dist-ssr
 *.sw?
 node_modules
 src-tauri/target
+src-tauri/installer/target
 src-tauri/binaries
 *.exe
 *.key
