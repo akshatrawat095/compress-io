@@ -1,9 +1,32 @@
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, existsSync, readFileSync } from 'node:fs';
+import { copyFileSync, existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
-function run(cmd, args) {
-  execFileSync(cmd, args, { stdio: 'inherit' });
+function run(cmd, args, env = process.env) {
+  execFileSync(cmd, args, { stdio: 'inherit', env });
+}
+
+function parseTargetTriple(args) {
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if ((arg === '-t' || arg === '--target') && args[i + 1]) {
+      return args[i + 1];
+    }
+    if (arg.startsWith('--target=')) {
+      return arg.slice('--target='.length);
+    }
+  }
+  return process.env.CARGO_BUILD_TARGET || null;
+}
+
+function detectWindowsArch(targetTriple) {
+  if (targetTriple) {
+    return targetTriple.toLowerCase().startsWith('aarch64') ? 'arm64' : 'x64';
+  }
+  if (process.arch === 'arm64' || (process.env.PROCESSOR_ARCHITECTURE || '').toUpperCase() === 'ARM64') {
+    return 'arm64';
+  }
+  return 'x64';
 }
 
 const cliArgs = process.argv.slice(2);
@@ -19,6 +42,8 @@ const hasBundlesFlag = forwarded.some((a) => a === '-b' || a === '--bundles');
 const hasSigningKey = Boolean(
   process.env.TAURI_SIGNING_PRIVATE_KEY || process.env.TAURI_SIGNING_PRIVATE_KEY_PATH,
 );
+const targetTriple = parseTargetTriple(forwarded);
+
 const tauriBuildArgs = ['build'];
 if (!hasBundlesFlag) {
   tauriBuildArgs.push('-b', 'nsis');
@@ -32,17 +57,41 @@ console.log('==> [1/4] Building main Tauri Windows binary...');
 run(process.execPath, [tauriBin, ...tauriBuildArgs]);
 
 console.log('==> [2/4] Building custom Compress I/O Windows installer...');
-run('cargo', ['build', '--release', '--manifest-path', 'src-tauri/installer/Cargo.toml']);
+const installerCargoArgs = [
+  'build',
+  '--release',
+  '--manifest-path',
+  'src-tauri/installer/Cargo.toml',
+];
+if (targetTriple) {
+  installerCargoArgs.push('--target', targetTriple);
+}
+const targetRelDir = targetTriple
+  ? resolve(join('src-tauri/target', targetTriple, 'release'))
+  : resolve('src-tauri/target/release');
+const payloadExe = join(targetRelDir, 'universal-compressor.exe');
+
+run('cargo', installerCargoArgs, {
+  ...process.env,
+  COMPRESS_IO_PAYLOAD: payloadExe,
+});
 
 const conf = JSON.parse(readFileSync(resolve('src-tauri/tauri.conf.json'), 'utf8'));
 const productName = conf.productName || 'compress-io';
 const version = conf.version;
-const arch = process.arch === 'arm64' ? 'arm64' : 'x64';
+const arch = detectWindowsArch(targetTriple);
 
-const customInstaller = resolve('src-tauri/installer/target/release/compress-io-setup.exe');
-const nsisSetup = resolve(
-  join('src-tauri/target/release/bundle/nsis', `${productName}_${version}_${arch}-setup.exe`),
-);
+const customInstaller = targetTriple
+  ? resolve(join('src-tauri/installer/target', targetTriple, 'release/compress-io-setup.exe'))
+  : resolve('src-tauri/installer/target/release/compress-io-setup.exe');
+
+const nsisDir = join(targetRelDir, 'bundle/nsis');
+const detectedSetup = existsSync(nsisDir)
+  ? readdirSync(nsisDir).find(
+      (name) => name.startsWith(`${productName}_${version}_`) && name.endsWith('-setup.exe'),
+    )
+  : null;
+const nsisSetup = join(nsisDir, detectedSetup || `${productName}_${version}_${arch}-setup.exe`);
 
 if (!existsSync(customInstaller)) {
   throw new Error(`Custom installer missing at ${customInstaller}`);
