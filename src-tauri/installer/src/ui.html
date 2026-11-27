@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Compress I/O Setup</title>
+<style>
+  :root {
+    --bg: #F2F0EB;
+    --surface: rgba(250, 249, 245, 0.94);
+    --surface-soft: rgba(66, 79, 60, 0.05);
+    --border: rgba(66, 79, 60, 0.14);
+    --text: #222820;
+    --muted: #5F675A;
+    --forest: #424F3C;
+    --olive: #666B54;
+    --sage: #8AA282;
+    --moss: #9DB290;
+    --pill-bg: rgba(66, 79, 60, 0.08);
+    --track: #DDD9CE;
+    --btn-txt: #FAF9F5;
+    --danger: #B85442;
+    --warn: #B7791F;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0E130F;
+      --surface: rgba(20, 27, 21, 0.94);
+      --surface-soft: rgba(138, 162, 130, 0.07);
+      --border: rgba(138, 162, 130, 0.18);
+      --text: #F2F0EB;
+      --muted: #9BA396;
+      --pill-bg: rgba(138, 162, 130, 0.13);
+      --track: rgba(255, 255, 255, 0.1);
+      --warn: #E2A84B;
+    }
+  }
+
+  * {
+    box-sizing: border-box;
+    user-select: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .shell {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 18px 26px 22px;
+    background:
+      radial-gradient(430px circle at 15% 10%, rgba(138, 162, 130, 0.22), transparent 65%),
+      radial-gradient(380px circle at 90% 88%, rgba(66, 79, 60, 0.18), transparent 65%),
+      var(--bg);
+    border: 1px solid var(--border);
+  }
+
+  .titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: grab;
+  }
+  .titlebar:active { cursor: grabbing; }
+
+  .badge-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .badge {
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--pill-bg);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  .badge.accent {
+    color: var(--forest);
+    background: rgba(138, 162, 130, 0.2);
+    border-color: rgba(138, 162, 130, 0.4);
+  }
+  @media (prefers-color-scheme: dark) {
+    .badge.accent { color: var(--moss); }
+  }
+
+  .win-controls {
+    display: flex;
+    gap: 5px;
+  }
+
+  .win-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.15s ease;
+  }
+  .win-btn:hover { background: var(--pill-bg); color: var(--text); }
+  .win-btn.close:hover { background: rgba(184, 84, 66, 0.16); color: var(--danger); }
+
+  .hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .emblem-wrap {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #6F775D 0%, #515D47 48%, #384433 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 12px 30px rgba(66, 79, 60, 0.34), inset 0 0 0 1px rgba(255, 255, 255, 0.24);
+    margin-bottom: 12px;
+    animation: floatIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes floatIn {
+    from { opacity: 0; transform: translateY(10px) scale(0.92); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .emblem-wrap.pulse { animation: pulseGlow 1.8s ease-in-out infinite; }
+  @keyframes pulseGlow {
+    0%, 100% { transform: scale(1); box-shadow: 0 12px 30px rgba(66, 79, 60, 0.34); }
+    50% { transform: scale(1.045); box-shadow: 0 18px 42px rgba(138, 162, 130, 0.45); }
+  }
+
+  h1 {
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+  }
+  h1 span { color: var(--sage); }
+
+  .subtitle {
+    margin-top: 4px;
+    font-size: 11.5px;
+    color: var(--muted);
+    max-width: 400px;
+    line-height: 1.4;
+  }
+
+  .engine-pill {
+    margin-top: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--surface-soft);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--sage);
+  }
+  .dot.ready { background: #6FA36E; box-shadow: 0 0 8px rgba(111, 163, 110, 0.65); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 13px 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.06);
+  }
+
+  .location-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 11px;
+    border-radius: 12px;
+    background: var(--surface-soft);
+    border: 1px solid var(--border);
+  }
+
+  .loc-info {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .loc-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 9.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+  .space-tag {
+    font-family: Consolas, monospace;
+    font-weight: 700;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .space-tag.admin {
+    color: var(--warn);
+  }
+  .loc-path {
+    font-family: Consolas, monospace;
+    font-size: 11px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .btn-change {
+    flex-shrink: 0;
+    padding: 6px 11px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--pill-bg);
+    color: var(--text);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn-change:hover {
+    border-color: var(--sage);
+    background: rgba(138, 162, 130, 0.22);
+  }
+
+  .options-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .option-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .option-sub {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+
+  .toggle {
+    position: relative;
+    width: 34px;
+    height: 19px;
+    background: var(--track);
+    border-radius: 999px;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #FAF9F5;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    transition: transform 0.2s;
+  }
+  input:checked + .toggle { background: var(--forest); }
+  input:checked + .toggle::after { transform: translateX(15px); }
+  input[type="checkbox"] { display: none; }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .btn-primary {
+    flex: 1;
+    border: none;
+    border-radius: 13px;
+    padding: 13px 16px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--btn-txt);
+    background: linear-gradient(135deg, var(--olive) 0%, var(--forest) 100%);
+    box-shadow: 0 10px 24px rgba(66, 79, 60, 0.28);
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 28px rgba(66, 79, 60, 0.36); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary.danger {
+    background: linear-gradient(135deg, #C96452 0%, #A14232 100%);
+    box-shadow: 0 10px 24px rgba(184, 84, 66, 0.26);
+  }
+  .btn-primary.warn {
+    background: linear-gradient(135deg, #B7791F 0%, #8C5A12 100%);
+  }
+
+  .btn-secondary {
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    padding: 13px 16px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    background: var(--pill-bg);
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .progress-wrap {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    padding: 4px 0;
+  }
+  .progress-wrap.active { display: flex; }
+
+  .bar-bg {
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--track);
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--forest), var(--sage), var(--moss));
+    transition: width 0.22s ease-out;
+  }
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    font-family: Consolas, monospace;
+    color: var(--muted);
+  }
+
+  .error-box {
+    display: none;
+    padding: 9px 11px;
+    border-radius: 11px;
+    font-size: 11px;
+    background: rgba(184, 84, 66, 0.14);
+    border: 1px solid rgba(184, 84, 66, 0.35);
+    color: #E07A68;
+    word-break: break-word;
+  }
+  .error-box.active { display: block; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+  <div class="shell">
+    <div class="titlebar" id="dragBar">
+      <div class="badge-group">
+        <span class="badge" id="versionBadge">Compress I/O · Setup</span>
+        <span class="badge accent hidden" id="modeBadge">UPDATE</span>
+      </div>
+      <div class="win-controls">
+        <button class="win-btn" id="minBtn" title="Minimize">&#8211;</button>
+        <button class="win-btn close" id="closeBtn" title="Close">&#10005;</button>
+      </div>
+    </div>
+
+    <div class="hero">
+      <div class="emblem-wrap" id="emblemWrap">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#FAF9F5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2.6 7.5 5.6 12l-3 4.5" />
+          <path d="M21.4 7.5 18.4 12l3 4.5" />
+          <circle cx="12" cy="12" r="3.9" />
+          <path d="M12 9.4v5.2" />
+        </svg>
+      </div>
+      <h1 id="heroTitle">Compress <span>I/O</span></h1>
+      <p class="subtitle" id="heroSubtitle">Minimalist hybrid GPU+CPU compression studio. Choose a folder or install in one click.</p>
+      <div class="engine-pill" id="enginePill">
+        <span class="dot" id="engineDot"></span>
+        <span id="engineText">Checking media engine...</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div id="setupControls">
+        <div class="location-box" id="locationBox" style="margin-bottom: 10px;">
+          <div class="loc-info">
+            <div class="loc-top">
+              <span>Install Location</span>
+              <span class="space-tag" id="diskTag"></span>
+            </div>
+            <div class="loc-path" id="targetPath" title="">%LOCALAPPDATA%\compress-io</div>
+          </div>
+          <button class="btn-change" id="browseBtn">Change</button>
+        </div>
+
+        <div class="options-list">
+          <label class="option-row">
+            <span id="opt1Label">Create Desktop Shortcut</span>
+            <input type="checkbox" id="optDesktop" checked />
+            <span class="toggle"></span>
+          </label>
+          <label class="option-row" id="rowContext">
+            <span>Add to Explorer Right-Click Menu <span class="option-sub">(Compress media)</span></span>
+            <input type="checkbox" id="optContext" checked />
+            <span class="toggle"></span>
+          </label>
+          <label class="option-row" id="rowLaunch">
+            <span>Launch Compress I/O when ready</span>
+            <input type="checkbox" id="optLaunch" checked />
+            <span class="toggle"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="error-box" id="errorBox"></div>
+
+      <div class="progress-wrap" id="progressWrap">
+        <div class="bar-bg"><div class="bar-fill" id="barFill"></div></div>
+        <div class="progress-meta">
+          <span id="statusText">PREPARING...</span>
+          <span id="pctText">0%</span>
+        </div>
+      </div>
+
+      <div class="actions" id="actionRow">
+        <button class="btn-secondary hidden" id="cancelBtn">Cancel</button>
+        <button class="btn-primary" id="mainBtn">Install &amp; Launch</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const send = (payload) => window.ipc.postMessage(JSON.stringify(payload));
+  let state = {
+    mode: 'install',
+    version: '0.1.60',
+    installedVersion: null,
+    relation: 'fresh',
+    installDir: '',
+    freeText: '',
+    needsElevation: false,
+    ffmpegCached: false,
+    autoStart: false,
+    desktopShortcut: true,
+    contextMenu: true,
+    launchAfter: true,
+  };
+
+  document.getElementById('dragBar').addEventListener('mousedown', (e) => {
+    if (e.target.closest('button')) return;
+    send({ cmd: 'drag' });
+  });
+  document.getElementById('minBtn').onclick = () => send({ cmd: 'minimize' });
+  document.getElementById('closeBtn').onclick = () => send({ cmd: 'close' });
+  document.getElementById('cancelBtn').onclick = () => send({ cmd: 'close' });
+  document.getElementById('browseBtn').onclick = () => send({ cmd: 'browse', currentDir: state.installDir });
+
+  function refreshMainButtonLabel() {
+    const mainBtn = document.getElementById('mainBtn');
+    const launch = document.getElementById('optLaunch').checked;
+    const suffix = launch ? ' & Launch' : '';
+    const adminPrefix = state.needsElevation ? 'Admin ' : '';
+
+    mainBtn.classList.remove('danger', 'warn');
+    if (state.mode === 'uninstall') {
+      mainBtn.textContent = 'Uninstall Now';
+      mainBtn.classList.add('danger');
+      return;
+    }
+
+    if (state.relation === 'upgrade' && state.installedVersion) {
+      mainBtn.textContent = `${adminPrefix}Update v${state.installedVersion} -> v${state.version}${suffix}`;
+    } else if (state.relation === 'reinstall') {
+      mainBtn.textContent = `${adminPrefix}Reinstall v${state.version}${suffix}`;
+    } else if (state.relation === 'downgrade' && state.installedVersion) {
+      mainBtn.textContent = `${adminPrefix}Downgrade to v${state.version}${suffix}`;
+      mainBtn.classList.add('warn');
+    } else {
+      mainBtn.textContent = `${adminPrefix}Install v${state.version}${suffix}`;
+    }
+  }
+
+  document.getElementById('optLaunch').onchange = refreshMainButtonLabel;
+
+  window.__onTargetChanged = (info) => {
+    state.installDir = info.path;
+    state.freeText = info.freeText;
+    state.needsElevation = !!info.needsElevation;
+
+    const targetEl = document.getElementById('targetPath');
+    targetEl.textContent = info.path;
+    targetEl.title = info.path;
+
+    const diskTag = document.getElementById('diskTag');
+    if (state.needsElevation) {
+      diskTag.textContent = `${info.freeText} · Admin Required`;
+      diskTag.classList.add('admin');
+    } else {
+      diskTag.textContent = info.freeText;
+      diskTag.classList.remove('admin');
+    }
+    refreshMainButtonLabel();
+  };
+
+  function beginAction() {
+    const desktopChecked = document.getElementById('optDesktop').checked;
+    const contextChecked = document.getElementById('optContext').checked;
+    const launchChecked = document.getElementById('optLaunch').checked;
+
+    document.getElementById('setupControls').classList.add('hidden');
+    document.getElementById('actionRow').classList.add('hidden');
+    document.getElementById('errorBox').classList.remove('active');
+    document.getElementById('progressWrap').classList.add('active');
+    document.getElementById('emblemWrap').classList.add('pulse');
+    document.getElementById('closeBtn').disabled = true;
+
+    if (state.mode === 'uninstall') {
+      send({ cmd: 'uninstall', removeRuntimeCache: desktopChecked });
+    } else {
+      send({
+        cmd: 'install',
+        installDir: state.installDir,
+        desktopShortcut: desktopChecked,
+        contextMenu: contextChecked,
+        launchAfter: launchChecked,
+      });
+    }
+  }
+
+  window.__initSetup = (cfg) => {
+    state = { ...state, ...cfg };
+    document.getElementById('versionBadge').textContent = `v${cfg.version} · ${cfg.mode === 'uninstall' ? 'Uninstall' : 'Installer'}`;
+
+    const engDot = document.getElementById('engineDot');
+    const engText = document.getElementById('engineText');
+    if (cfg.ffmpegCached) {
+      engDot.classList.add('ready');
+      engText.textContent = 'FFmpeg Media Engine: Cached & Verified';
+    } else {
+      engText.textContent = 'FFmpeg Media Engine: Auto-setup on first launch';
+    }
+
+    if (cfg.mode === 'uninstall') {
+      document.getElementById('heroTitle').innerHTML = 'Remove <span>Compress I/O</span>';
+      document.getElementById('heroSubtitle').textContent = 'Removes tracked app files, Explorer actions, shortcuts, and registry entries cleanly.';
+      document.getElementById('locationBox').classList.add('hidden');
+      document.getElementById('enginePill').classList.add('hidden');
+      document.getElementById('rowContext').classList.add('hidden');
+      document.getElementById('rowLaunch').classList.add('hidden');
+      document.getElementById('opt1Label').textContent = 'Also delete cached FFmpeg runtime & app data';
+      document.getElementById('optDesktop').checked = false;
+      document.getElementById('cancelBtn').classList.remove('hidden');
+      refreshMainButtonLabel();
+      return;
+    }
+
+    document.getElementById('optDesktop').checked = cfg.desktopShortcut !== false;
+    document.getElementById('optContext').checked = cfg.contextMenu !== false;
+    document.getElementById('optLaunch').checked = cfg.launchAfter !== false;
+
+    const modeBadge = document.getElementById('modeBadge');
+    if (cfg.relation === 'upgrade' && cfg.installedVersion) {
+      modeBadge.textContent = `UPGRADE ${cfg.installedVersion} -> ${cfg.version}`;
+      modeBadge.classList.remove('hidden');
+      document.getElementById('heroSubtitle').textContent = 'Existing installation detected. Safe atomic upgrade with backup rollback.';
+    } else if (cfg.relation === 'reinstall') {
+      modeBadge.textContent = 'REINSTALL';
+      modeBadge.classList.remove('hidden');
+      document.getElementById('heroSubtitle').textContent = `Version ${cfg.version} is already installed at your target folder.`;
+    } else if (cfg.relation === 'downgrade' && cfg.installedVersion) {
+      modeBadge.textContent = `INSTALLED v${cfg.installedVersion}`;
+      modeBadge.classList.remove('hidden');
+      document.getElementById('heroSubtitle').textContent = 'A newer version is currently installed. Proceed only if you intend to roll back.';
+    }
+
+    window.__onTargetChanged({
+      path: cfg.installDir,
+      freeText: cfg.freeText,
+      needsElevation: cfg.needsElevation,
+    });
+
+    if (cfg.autoStart) {
+      beginAction();
+    }
+  };
+
+  document.getElementById('mainBtn').onclick = beginAction;
+
+  window.__onSetupProgress = (evt) => {
+    document.getElementById('barFill').style.width = `${evt.percent}%`;
+    document.getElementById('statusText').textContent = evt.label;
+    document.getElementById('pctText').textContent = `${Math.round(evt.percent)}%`;
+  };
+
+  window.__onSetupError = (msg) => {
+    document.getElementById('emblemWrap').classList.remove('pulse');
+    document.getElementById('progressWrap').classList.remove('active');
+    document.getElementById('setupControls').classList.remove('hidden');
+    document.getElementById('actionRow').classList.remove('hidden');
+    document.getElementById('closeBtn').disabled = false;
+    const err = document.getElementById('errorBox');
+    err.textContent = msg;
+    err.classList.add('active');
+  };
+
+  if (window.__SETUP_CONFIG__) {
+    window.__initSetup(window.__SETUP_CONFIG__);
+  }
+</script>
+</body>
+</html>

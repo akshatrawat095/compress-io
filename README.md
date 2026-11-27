@@ -77,7 +77,7 @@ Most media tools fall into two traps: they upload your private files to third-pa
 ## 🎨 Interface & Ergonomics
 
 - **Minimalist Controls:** Just `HYBRID ENGINE` (auto-labeled with your detected GPU or `Tuned CPU`), `Output Dimensions` when images are queued, optional `TARGET SIZE`, and `START COMPRESS`.
-- **Pantone-Validated Warm Botanical Sage Theme:** Engineered around **Warm Alabaster** (`#F2F0EB` / `11-0602 TCX`), **Mistletoe** (`#8AA282` / `16-0220 TCX`), **Olivine** (`#666B54` / `18-0316 TCX`), and **Black Forest** (`#424F3C` / `19-0315 TCX`) with contrast-checked typography across both Light and Pine-Obsidian Dark themes.
+- **Warm Botanical Sage Theme:** Engineered around **Warm Alabaster** (`#F2F0EB`), **Mistletoe Sage** (`#8AA282`), **Olivine** (`#666B54`), and **Black Forest** (`#424F3C`) with contrast-checked typography across both Light and Pine-Obsidian Dark themes.
 - **Built-in Signed Auto-Updater:** Fetches new release manifests (`latest.json`) and changelog notes straight from GitHub Releases with Minisign Ed25519 signature verification.
 
 <br />
