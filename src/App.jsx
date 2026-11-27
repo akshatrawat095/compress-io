@@ -1,30 +1,27 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { open, save, ask } from "@tauri-apps/plugin-dialog";
-import { revealItemInDir } from "@tauri-apps/plugin-opener";
-import { motion, AnimatePresence, Reorder, useMotionValue, useSpring, useTransform, useAnimate, useDragControls, useMotionTemplate } from "framer-motion";
+import { open, save } from "@tauri-apps/plugin-dialog";
+import { motion, AnimatePresence, Reorder, useMotionValue, useSpring, useTransform, useAnimate, useMotionTemplate } from "framer-motion";
 import { listen } from "@tauri-apps/api/event"; 
-import MotionToggle from "./components/MotionToggle";
-import MotionSelect from "./components/MotionSelect";
-import Magnetic from "./components/Magnetic";
 import StudioBackground from "./components/StudioBackground";
-import RollingDigit from "./components/RollingDigit";
-import NeuralText from "./components/NeuralText";
-import QuantumBurst from "./components/QuantumBurst";
 import CinematicIntro from "./components/CinematicIntro";
 import Icon from "./components/Icon";
 import FileQueueItem from "./components/FileQueueItem";
 import DashboardHeader from "./components/DashboardHeader";
 import SettingsDeck from "./components/SettingsDeck";
 import UpdaterModal from "./components/UpdaterModal";
-import AuraGrid from "./components/AuraGrid";
+import EngineSetupModal from "./components/EngineSetupModal";
 import ErrorToast from "./components/ErrorToast";
 import NumberFlow from "@number-flow/react";
+import { useUpdater } from "./hooks/useUpdater";
+import { useFfmpegRuntime } from "./hooks/useFfmpegRuntime";
 
 export default function App() {
   const [showIntro, setShowIntro] = useState(true);
-  const [appMode, setAppMode] = useState("compress");
+  const appMode = "compress";
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const updater = useUpdater();
+  const ffmpegRuntime = useFfmpegRuntime();
   
   const [fileQueue, setFileQueue] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(null);
@@ -44,8 +41,6 @@ export default function App() {
   const [stabilize, setStabilize] = useState(false);
   const [hyperDetail, setHyperDetail] = useState(false);
   const [tileSize, setTileSize] = useState("0");
-  
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [targetSizeEnabled, setTargetSizeEnabled] = useState(false);
   const [targetSize, setTargetSize] = useState("");
@@ -53,9 +48,7 @@ export default function App() {
   const [targetFormat, setTargetFormat] = useState("same");
 
   const [showComparison, setShowComparison] = useState(false);
-  const [enhancedPath, setEnhancedPath] = useState("");
   const [sliderPos, setSliderPos] = useState(50);
-  const [zoomLevel, setZoomLevel] = useState(1);
   const [originalImgSrc, setOriginalImgSrc] = useState(""); 
   const [enhancedImgSrc, setEnhancedImgSrc] = useState(""); 
 
@@ -77,6 +70,7 @@ export default function App() {
   const isStoppingRef = useRef(false);
 
   useEffect(() => {
+    if (!ffmpegRuntime.isReady) return;
     invoke("detect_hardware_tier")
       .then((info) => {
         if (info) setHwInfo(info);
@@ -84,11 +78,10 @@ export default function App() {
       .catch(() => {
         setHwInfo({ tier: "cpu", encoder: "libx265", label: "Tuned CPU", can_dual_engine: false });
       });
-  }, []);
+  }, [ffmpegRuntime.isReady]);
 
   const rawProgress = useMotionValue(0);
   const springProgress = useSpring(rawProgress, { stiffness: 60, damping: 18 });
-  const displayProgress = useTransform(springProgress, (v) => Math.round(v));
 
   const auraOpacity = useTransform(springProgress, [0, 50, 100], [0.06, 0.15, 0.45]);
   const auraRadius = useTransform(springProgress, [0, 100], [220, 500]);
@@ -96,8 +89,6 @@ export default function App() {
   const [successScope, animateSuccess] = useAnimate();
 
   const sliderX = useMotionValue(50);
-  const dragControls = useDragControls();
-  const sliderContainerRef = useRef(null);
 
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
@@ -659,7 +650,7 @@ export default function App() {
     sliderX.set(50);
     if (!file.finalPath || file.type !== 'IMG') return;
     
-    setOriginalImgSrc(""); setEnhancedImgSrc(""); setZoomLevel(1);
+    setOriginalImgSrc(""); setEnhancedImgSrc("");
     
     try {
       const origBytes = await invoke("read_file_bytes", { path: file.path });
@@ -667,7 +658,6 @@ export default function App() {
       
       setOriginalImgSrc(URL.createObjectURL(new Blob([new Uint8Array(origBytes)])));
       setEnhancedImgSrc(URL.createObjectURL(new Blob([new Uint8Array(enhBytes)])));
-      setEnhancedPath(file.finalPath);
       setShowComparison(true);
     } catch (e) {
       console.error("Could not load preview:", e);
@@ -693,7 +683,7 @@ export default function App() {
     setShowComparison(false);
     if (originalImgSrc) URL.revokeObjectURL(originalImgSrc);
     if (enhancedImgSrc) URL.revokeObjectURL(enhancedImgSrc);
-    setOriginalImgSrc(""); setEnhancedImgSrc(""); setEnhancedPath("");
+    setOriginalImgSrc(""); setEnhancedImgSrc("");
   }, [originalImgSrc, enhancedImgSrc]);
 
   const hasImages = useMemo(() => fileQueue.length > 0 ? fileQueue[0].type === 'IMG' : false, [fileQueue]);
@@ -748,7 +738,7 @@ export default function App() {
           }}
           className="flex-none mb-2"
         >
-          <DashboardHeader appMode={appMode} isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isProcessing={isProcessing} stats={{ compressedSize: "0", originalSize: "0", totalFiles: fileQueue.length }} />
+          <DashboardHeader appMode={appMode} isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isProcessing={isProcessing} updater={updater} stats={{ compressedSize: "0", originalSize: "0", totalFiles: fileQueue.length }} />
         </motion.div>
 
 
@@ -1120,7 +1110,8 @@ export default function App() {
       </AnimatePresence>
 
       <ErrorToast error={errorToast} isDarkMode={isDarkMode} onDismiss={() => setErrorToast(null)} />
-      <UpdaterModal isDarkMode={isDarkMode} />
+      <EngineSetupModal isDarkMode={isDarkMode} runtime={ffmpegRuntime} />
+      <UpdaterModal isDarkMode={isDarkMode} updater={updater} />
     </div>
   );
 }

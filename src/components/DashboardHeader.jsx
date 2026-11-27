@@ -7,8 +7,10 @@ const DashboardHeader = React.memo(({
   appMode, 
   isDarkMode, 
   setIsDarkMode, 
-  isProcessing 
+  isProcessing,
+  updater
 }) => {
+  const showUpdaterPill = updater?.updateInfo && updater.status !== 'idle';
   return (
     <header className="w-full flex flex-col gap-6">
       <div className="w-full flex justify-between items-center px-1">
@@ -22,6 +24,39 @@ const DashboardHeader = React.memo(({
          </div>
          
          <div className="flex items-center gap-2">
+            {showUpdaterPill && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+                onClick={updater.openModal}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest transition-all ${
+                  updater.status === 'ready'
+                    ? (isDarkMode
+                        ? 'bg-studio-sage/20 border-studio-sage/45 text-studio-moss shadow-[0_0_12px_rgba(138,162,130,0.25)]'
+                        : 'bg-studio-forest border-studio-forest text-[#FAF9F5] shadow-sm')
+                    : (isDarkMode
+                        ? 'bg-white/5 border-white/15 text-studio-lichen hover:bg-white/10'
+                        : 'bg-[#F5F1E6] border-[#DFD8C5] text-studio-forest hover:bg-[#EDE6D4]')
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  updater.status === 'ready'
+                    ? (isDarkMode ? 'bg-studio-moss animate-pulse' : 'bg-[#C8DEC0] animate-pulse')
+                    : updater.status === 'error'
+                      ? 'bg-[#B85442]'
+                      : 'bg-studio-sage animate-pulse'
+                }`} />
+                {updater.status === 'ready'
+                  ? `Update v${updater.updateInfo.version}`
+                  : updater.status === 'downloading'
+                    ? `v${updater.updateInfo.version} · ${updater.progress}%`
+                    : updater.status === 'installing'
+                      ? 'Restarting...'
+                      : 'Update Retry'}
+              </motion.button>
+            )}
             <Magnetic>
               <motion.button
                 whileHover={{ scale: 1.1, rotate: 5 }}

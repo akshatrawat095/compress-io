@@ -1,9 +1,8 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { motion, useMotionValue, useSpring } from "framer-motion";
 
 export default function Magnetic({ children }) {
     const ref = useRef(null);
-    const [position, setPosition] = useState({ x: 0, y: 0 });
 
     const x = useMotionValue(0);
     const y = useMotionValue(0);

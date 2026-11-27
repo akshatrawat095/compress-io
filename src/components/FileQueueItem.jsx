@@ -1,5 +1,5 @@
 import React from "react";
-import { motion, Reorder } from "framer-motion";
+import { Reorder } from "framer-motion";
 import Icon from "./Icon";
 
 const FileQueueItem = React.memo(({ 

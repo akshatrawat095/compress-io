@@ -10,9 +10,6 @@ export default function UniversalGrid({ isProcessing, isDarkMode, appMode }) {
   const dots = useMemo(() => Array.from({ length: totalDots }), [totalDots]);
 
   const primaryColor = appMode === 'enhance' ? '#747B4D' : '#8AA282';
-  const glowColor = isDarkMode 
-    ? (appMode === 'enhance' ? 'rgba(116, 123, 77, 0.5)' : 'rgba(138, 162, 130, 0.55)')
-    : 'rgba(66, 79, 60, 0.1)';
 
   // Pulse animation variants
   const dotVariants = {

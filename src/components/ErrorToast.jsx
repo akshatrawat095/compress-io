@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useRef, useCallback } from 'react';
 import { motion, AnimatePresence, useMotionValue, useSpring, useMotionTemplate } from 'framer-motion';
 
 // ── Intelligent error message parsing ──
@@ -423,12 +423,11 @@ export default function ErrorToast({ error, isDarkMode, onDismiss }) {
   const spotlightGlow = useMotionTemplate`radial-gradient(350px circle at ${springX}px ${springY}px, ${spotlightColor}, transparent 80%)`;
   const borderGlow = useMotionTemplate`radial-gradient(200px circle at ${springX}px ${springY}px, rgba(239, 68, 68, 0.35), transparent 80%)`;
 
-  if (!error) return null;
-  const parsed = parseError(error);
+  const parsed = error ? parseError(error) : null;
 
   return (
     <AnimatePresence>
-      {error && (
+      {error && parsed && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
