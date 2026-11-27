@@ -396,6 +396,14 @@ fn absolutize_path(p: &str) -> String {
 
 struct EncoderCache(Mutex<HashMap<String, bool>>);
 
+struct StartupFilesState(Mutex<Vec<String>>);
+
+#[tauri::command]
+fn take_startup_files(state: State<'_, StartupFilesState>) -> Vec<String> {
+    let mut guard = state.0.lock().unwrap();
+    std::mem::take(&mut *guard)
+}
+
 // --- DIAGNOSTIC HELPER: Checks and PRINTS GPU status ---
 async fn is_encoder_supported(app: &AppHandle, cache: &State<'_, EncoderCache>, encoder: &str) -> bool {
     {
@@ -1633,6 +1641,11 @@ async fn compress_audio(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let startup_files: Vec<String> = std::env::args()
+        .skip(1)
+        .filter(|arg| !arg.starts_with('-') && !arg.starts_with('/') && Path::new(arg).is_file())
+        .collect();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
@@ -1640,9 +1653,11 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .manage(EncoderCache(Mutex::new(HashMap::new())))
         .manage(ffmpeg_runtime::FfmpegRuntimeState::new())
+        .manage(StartupFilesState(Mutex::new(startup_files)))
         .invoke_handler(tauri::generate_handler![
             ffmpeg_runtime::check_ffmpeg_runtime,
             ffmpeg_runtime::ensure_ffmpeg_runtime,
+            take_startup_files,
             detect_hardware_tier,
             compress_video, 
             compress_image, 

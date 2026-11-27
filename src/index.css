@@ -6,13 +6,13 @@
   --font-display: "Outfit", sans-serif;
   --font-sans: "Plus Jakarta Sans", sans-serif;
 
-  /* Pantone-validated Botanical Warm Sage & Muted Forest Palette */
-  --color-studio-forest: #424f3c;   /* PANTONE 19-0315 TCX Black Forest */
-  --color-studio-olive: #666b54;    /* PANTONE 18-0316 TCX Olivine */
-  --color-studio-sage: #8aa282;     /* PANTONE 16-0220 TCX Mistletoe */
-  --color-studio-moss: #9db290;     /* PANTONE 7494 C Warm Sage */
-  --color-studio-lichen: #b2ac88;   /* PANTONE 15-0318 TCX Sage Green */
-  --color-studio-cream: #f2f0eb;    /* PANTONE 11-0602 TCX Warm Alabaster */
+  /* Botanical Warm Sage & Muted Forest Palette */
+  --color-studio-forest: #424f3c;   /* Deep Black Forest */
+  --color-studio-olive: #666b54;    /* Olivine Sage */
+  --color-studio-sage: #8aa282;     /* Muted Mistletoe Sage */
+  --color-studio-moss: #9db290;     /* Warm Sage Moss */
+  --color-studio-lichen: #b2ac88;   /* Soft Lichen Sage */
+  --color-studio-cream: #f2f0eb;    /* Warm Alabaster */
   --color-studio-obsidian: #0e130f; /* Deep Warm Pine-Moss Obsidian */
 
   --radius-studio: 2.5rem;
