@@ -27,6 +27,14 @@ const STUDIO_ARCH_HIGHLIGHTS = [
 ];
 
 export const RELEASE_NOTES_BY_VERSION = {
+  '0.1.62': {
+    badge: 'Release v0.1.62',
+    headlineTop: 'Next-Gen',
+    headlineAccent: 'Studio Architecture.',
+    subtitle:
+      'Engineered for native ARM64 & x64 speed, ~87% smaller updates, and a custom zero-bloat Windows setup.',
+    highlights: STUDIO_ARCH_HIGHLIGHTS,
+  },
   '0.1.61': {
     badge: 'Release v0.1.61',
     headlineTop: 'Next-Gen',
@@ -45,7 +53,7 @@ export const RELEASE_NOTES_BY_VERSION = {
   },
 };
 
-const LATEST_DEFINED_VERSION = '0.1.61';
+const LATEST_DEFINED_VERSION = '0.1.62';
 
 /**
  * Returns release notes metadata for the requested version, falling back cleanly

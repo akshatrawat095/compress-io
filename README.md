@@ -37,7 +37,7 @@ Most media tools fall into two traps: they upload your private files to third-pa
 
 <br />
 
-## 🚀 Core Capabilities (`v0.1.61`)
+## 🚀 Core Capabilities (`v0.1.62`)
 
 <table width="100%">
   <tr>
@@ -115,7 +115,7 @@ flowchart LR
 > ### 🔐 Verify Any Binary in Seconds
 > Confirm that your downloaded installer was compiled directly by GitHub Actions without tampering:
 > ```bash
-> gh attestation verify compress-io_0.1.61_x64-setup.exe -R akshatrawat095/compress-io
+> gh attestation verify compress-io_0.1.62_x64-setup.exe -R akshatrawat095/compress-io
 > ```
 
 ### 📋 Security & Compliance Matrix

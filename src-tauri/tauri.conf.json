@@ -1,6 +1,6 @@
 {
   "productName": "compress-io",
-  "version": "0.1.61",
+  "version": "0.1.62",
   "identifier": "com.compress.io",
   "build": {
     "frontendDist": "../dist",

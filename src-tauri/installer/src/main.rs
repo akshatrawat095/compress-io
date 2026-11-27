@@ -23,6 +23,7 @@ const APP_VERSION: &str = env!("COMPRESS_IO_VERSION");
 
 const PRODUCT_NAME: &str = "compress-io";
 const DISPLAY_NAME: &str = "Compress I/O";
+const SHORTCUT_NAME: &str = "Compress IO";
 const MAIN_BIN_NAME: &str = "universal-compressor.exe";
 const INSTALL_MANIFEST_NAME: &str = "install-manifest.json";
 const CREATE_NO_WINDOW: u32 = 0x08000000;
@@ -371,7 +372,7 @@ fn start_menu_shortcut_path() -> Option<PathBuf> {
             .join("Windows")
             .join("Start Menu")
             .join("Programs")
-            .join(format!("{}.lnk", DISPLAY_NAME))
+            .join(format!("{}.lnk", SHORTCUT_NAME))
     })
 }
 
@@ -386,11 +387,35 @@ fn legacy_start_menu_shortcut_path() -> Option<PathBuf> {
 }
 
 fn desktop_shortcut_path() -> Option<PathBuf> {
-    dirs::desktop_dir().map(|d| d.join(format!("{}.lnk", DISPLAY_NAME)))
+    dirs::desktop_dir().map(|d| d.join(format!("{}.lnk", SHORTCUT_NAME)))
 }
 
 fn legacy_desktop_shortcut_path() -> Option<PathBuf> {
     dirs::desktop_dir().map(|d| d.join(format!("{}.lnk", PRODUCT_NAME)))
+}
+
+fn remove_broken_slash_shortcut(base_dir: Option<PathBuf>) {
+    if let Some(dir) = base_dir {
+        let broken_dir = dir.join("Compress I");
+        let _ = fs::remove_file(broken_dir.join("O.lnk"));
+        let _ = fs::remove_dir(&broken_dir);
+    }
+}
+
+fn cleanup_legacy_shortcuts() {
+    for legacy in [legacy_start_menu_shortcut_path(), legacy_desktop_shortcut_path()] {
+        if let Some(p) = legacy {
+            let _ = fs::remove_file(p);
+        }
+    }
+    let programs_dir = dirs::data_dir().map(|d| {
+        d.join("Microsoft")
+            .join("Windows")
+            .join("Start Menu")
+            .join("Programs")
+    });
+    remove_broken_slash_shortcut(programs_dir);
+    remove_broken_slash_shortcut(dirs::desktop_dir());
 }
 
 fn kill_running_app() {
@@ -791,20 +816,17 @@ where
 
     write_uninstall_registry(install_dir, &target_exe, &uninstaller_exe)?;
 
-    if let Some(legacy) = legacy_start_menu_shortcut_path() {
-        let _ = fs::remove_file(legacy);
-    }
+    cleanup_legacy_shortcuts();
     if let Some(sm_link) = start_menu_shortcut_path() {
         create_windows_shortcut(&sm_link, &target_exe, install_dir)?;
     }
 
-    if let Some(legacy_dt) = legacy_desktop_shortcut_path() {
-        let _ = fs::remove_file(legacy_dt);
-    }
     if desktop_shortcut {
         if let Some(dt_link) = desktop_shortcut_path() {
             create_windows_shortcut(&dt_link, &target_exe, install_dir)?;
         }
+    } else if let Some(dt_link) = desktop_shortcut_path() {
+        let _ = fs::remove_file(dt_link);
     }
 
     register_explorer_context_menu(&target_exe, context_menu);
@@ -830,12 +852,8 @@ where
 
     report(42.0, "CLEANING EXPLORER, SHORTCUTS & REGISTRY...");
     register_explorer_context_menu(Path::new(""), false);
-    for maybe_path in [
-        start_menu_shortcut_path(),
-        legacy_start_menu_shortcut_path(),
-        desktop_shortcut_path(),
-        legacy_desktop_shortcut_path(),
-    ] {
+    cleanup_legacy_shortcuts();
+    for maybe_path in [start_menu_shortcut_path(), desktop_shortcut_path()] {
         if let Some(p) = maybe_path {
             let _ = fs::remove_file(p);
         }
@@ -1170,7 +1188,29 @@ mod tests {
         assert!(EMBEDDED_UI_HTML.contains("Compress"));
         assert!(EMBEDDED_UI_HTML.contains("Install Location"));
         assert!(default_install_dir().unwrap().ends_with("compress-io"));
-        assert!(desktop_shortcut_path().unwrap().ends_with("Compress I/O.lnk"));
-        assert!(start_menu_shortcut_path().unwrap().ends_with("Compress I/O.lnk"));
+        let dt = desktop_shortcut_path().unwrap();
+        let sm = start_menu_shortcut_path().unwrap();
+        assert_eq!(dt.file_name().and_then(|s| s.to_str()), Some("Compress IO.lnk"));
+        assert_eq!(sm.file_name().and_then(|s| s.to_str()), Some("Compress IO.lnk"));
+        assert!(!SHORTCUT_NAME.contains('/') && !SHORTCUT_NAME.contains('\\'));
+    }
+
+    #[test]
+    fn cleans_broken_slash_shortcut_folder() {
+        let temp = std::env::temp_dir().join(format!(
+            "compress_io_shortcut_test_{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let broken_dir = temp.join("Compress I");
+        fs::create_dir_all(&broken_dir).unwrap();
+        fs::write(broken_dir.join("O.lnk"), b"lnk").unwrap();
+
+        remove_broken_slash_shortcut(Some(temp.clone()));
+        assert!(!broken_dir.exists());
+
+        let _ = fs::remove_dir_all(&temp);
     }
 }

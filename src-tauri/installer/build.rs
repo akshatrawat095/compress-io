@@ -16,7 +16,7 @@ fn read_tauri_version() -> String {
             }
         }
     }
-    env::var("CARGO_PKG_VERSION").unwrap_or_else(|_| "0.1.61".to_string())
+    env::var("CARGO_PKG_VERSION").unwrap_or_else(|_| "0.1.62".to_string())
 }
 
 fn main() {
