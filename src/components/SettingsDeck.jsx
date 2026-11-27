@@ -158,16 +158,6 @@ const SettingsDeck = React.memo(({
     }
   };
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20, filter: "blur(10px)" },
-    visible: { 
-      opacity: 1, 
-      y: 0, 
-      filter: "blur(0px)",
-      transition: { type: "spring", stiffness: 200, damping: 22 }
-    }
-  };
-
   return (
     <motion.div 
        layout

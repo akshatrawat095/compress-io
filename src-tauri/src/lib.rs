@@ -1,6 +1,6 @@
+mod ffmpeg_runtime;
+
 use tauri::{AppHandle, Emitter, Manager, WindowEvent, State};
-use tauri_plugin_shell::ShellExt;
-use tauri_plugin_shell::process::CommandEvent;
 use serde::Serialize;
 use std::path::{Path, PathBuf};
 use std::process::Command as StdCommand;
@@ -249,7 +249,7 @@ fn parse_media_probe(stderr: &str) -> MediaProbe {
     }
 }
 
-/// Executes the FFmpeg sidecar with OS pacing profile and streams structured 250ms telemetry.
+/// Executes FFmpeg with OS pacing profile and streams structured 250ms telemetry.
 async fn run_ffmpeg_with_telemetry(
     app: &AppHandle,
     args: Vec<String>,
@@ -270,19 +270,26 @@ async fn run_ffmpeg_with_telemetry(
     ];
     full_args.extend(args);
 
-    let mut sidecar = app
-        .shell()
-        .sidecar("ffmpeg")
-        .map_err(|e| e.to_string())?
-        .args(full_args)
-        .kill_on_drop(true);
+    let ffmpeg_path = ffmpeg_runtime::resolve_ffmpeg_path(app).await?;
+    let mut cmd = ffmpeg_runtime::build_ffmpeg_tokio_command(&ffmpeg_path, &full_args, work_dir);
+    cmd.stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
 
-    if let Some(dir) = work_dir {
-        sidecar = sidecar.current_dir(dir);
+    let mut child = cmd.spawn().map_err(|e| e.to_string())?;
+    if let Some(pid) = child.id() {
+        apply_process_profile(pid, perf_mode);
     }
 
-    let (mut rx, child) = sidecar.spawn().map_err(|e| e.to_string())?;
-    apply_process_profile(child.pid(), perf_mode);
+    let (tx, mut rx) = tokio::sync::mpsc::channel::<(bool, Vec<u8>)>(128);
+    if let Some(stdout) = child.stdout.take() {
+        let tx_out = tx.clone();
+        tokio::spawn(ffmpeg_runtime::stream_pipe_lines(stdout, tx_out, false));
+    }
+    if let Some(stderr) = child.stderr.take() {
+        let tx_err = tx.clone();
+        tokio::spawn(ffmpeg_runtime::stream_pipe_lines(stderr, tx_err, true));
+    }
+    drop(tx);
 
     let mut total_secs = known_duration.unwrap_or(0.0);
     let mut last_current_secs = 0.0_f64;
@@ -290,101 +297,88 @@ async fn run_ffmpeg_with_telemetry(
     let mut block_speed = 0.0_f64;
     let mut block_fps = 0.0_f64;
     let mut last_log_error = String::from("Unknown FFmpeg Error");
-    let mut exit_code: Option<i32> = None;
 
-    while let Some(event) = rx.recv().await {
-        match event {
-            CommandEvent::Stderr(line_bytes) => {
-                let line = String::from_utf8_lossy(&line_bytes);
-                let trimmed = line.trim();
-                if !trimmed.is_empty() {
-                    last_log_error = trimmed.to_string();
+    while let Some((is_stderr, line_bytes)) = rx.recv().await {
+        if is_stderr {
+            let line = String::from_utf8_lossy(&line_bytes);
+            let trimmed = line.trim();
+            if !trimmed.is_empty() {
+                last_log_error = trimmed.to_string();
+            }
+            if total_secs <= 0.0 {
+                if let Some(d) = parse_ffmpeg_duration(&line) {
+                    total_secs = d;
                 }
-                if total_secs <= 0.0 {
-                    if let Some(d) = parse_ffmpeg_duration(&line) {
-                        total_secs = d;
+            }
+        } else {
+            let text = String::from_utf8_lossy(&line_bytes);
+            for raw in text.lines() {
+                let s = raw.trim();
+                if let Some(val) = s.strip_prefix("out_time_us=") {
+                    if let Ok(us) = val.parse::<f64>() {
+                        if us >= 0.0 {
+                            block_time_secs = Some(us / 1_000_000.0);
+                        }
                     }
-                }
-            }
-            CommandEvent::Stdout(line_bytes) => {
-                let text = String::from_utf8_lossy(&line_bytes);
-                for raw in text.lines() {
-                    let s = raw.trim();
-                    if let Some(val) = s.strip_prefix("out_time_us=") {
-                        if let Ok(us) = val.parse::<f64>() {
-                            if us >= 0.0 {
-                                block_time_secs = Some(us / 1_000_000.0);
-                            }
+                } else if let Some(val) = s.strip_prefix("speed=") {
+                    if let Ok(sp) = val.trim_end_matches('x').trim().parse::<f64>() {
+                        if sp >= 0.0 {
+                            block_speed = sp;
                         }
-                    } else if let Some(val) = s.strip_prefix("speed=") {
-                        if let Ok(sp) = val.trim_end_matches('x').trim().parse::<f64>() {
-                            if sp >= 0.0 {
-                                block_speed = sp;
-                            }
-                        }
-                    } else if let Some(val) = s.strip_prefix("fps=") {
-                        if let Ok(f) = val.trim().parse::<f64>() {
-                            if f >= 0.0 {
-                                block_fps = f;
-                            }
-                        }
-                    } else if let Some(status) = s.strip_prefix("progress=") {
-                        if total_secs > 0.0 {
-                            let is_end = status == "end";
-                            let current = if is_end {
-                                block_time_secs.unwrap_or(total_secs)
-                            } else {
-                                block_time_secs.unwrap_or(last_current_secs)
-                            }
-                            .clamp(0.0, total_secs);
-                            last_current_secs = current;
-
-                            let ratio = (current / total_secs).clamp(0.0, 1.0);
-                            let overall_percent = if total_passes == 2 {
-                                if pass == 1 {
-                                    ratio * 45.0
-                                } else {
-                                    45.0 + ratio * 55.0
-                                }
-                            } else {
-                                ratio * 100.0
-                            };
-
-                            let _ = app.emit(
-                                "ffmpeg-telemetry",
-                                FfmpegTelemetry {
-                                    job_id: job_id.to_string(),
-                                    current_secs: current,
-                                    total_secs,
-                                    speed: block_speed,
-                                    fps: block_fps,
-                                    pass,
-                                    total_passes,
-                                    overall_percent,
-                                    finalizing: is_end && pass == total_passes,
-                                },
-                            );
-                        }
-                        block_time_secs = None;
                     }
+                } else if let Some(val) = s.strip_prefix("fps=") {
+                    if let Ok(f) = val.trim().parse::<f64>() {
+                        if f >= 0.0 {
+                            block_fps = f;
+                        }
+                    }
+                } else if let Some(status) = s.strip_prefix("progress=") {
+                    if total_secs > 0.0 {
+                        let is_end = status == "end";
+                        let current = if is_end {
+                            block_time_secs.unwrap_or(total_secs)
+                        } else {
+                            block_time_secs.unwrap_or(last_current_secs)
+                        }
+                        .clamp(0.0, total_secs);
+                        last_current_secs = current;
+
+                        let ratio = (current / total_secs).clamp(0.0, 1.0);
+                        let overall_percent = if total_passes == 2 {
+                            if pass == 1 {
+                                ratio * 45.0
+                            } else {
+                                45.0 + ratio * 55.0
+                            }
+                        } else {
+                            ratio * 100.0
+                        };
+
+                        let _ = app.emit(
+                            "ffmpeg-telemetry",
+                            FfmpegTelemetry {
+                                job_id: job_id.to_string(),
+                                current_secs: current,
+                                total_secs,
+                                speed: block_speed,
+                                fps: block_fps,
+                                pass,
+                                total_passes,
+                                overall_percent,
+                                finalizing: is_end && pass == total_passes,
+                            },
+                        );
+                    }
+                    block_time_secs = None;
                 }
             }
-            CommandEvent::Terminated(payload) => {
-                exit_code = payload.code;
-            }
-            CommandEvent::Error(err) => {
-                last_log_error = err;
-            }
-            _ => {}
         }
     }
 
-    drop(child);
-
-    if let Some(code) = exit_code {
-        if code != 0 {
-            return Err(format!("{} (Code {}): {}", error_prefix, code, last_log_error));
-        }
+    let status = child.wait().await.map_err(|e| e.to_string())?;
+    if !status.success() {
+        let code = status.code().unwrap_or(-1);
+        return Err(format!("{} (Code {}): {}", error_prefix, code, last_log_error));
     }
     Ok(())
 }
@@ -441,16 +435,13 @@ async fn is_encoder_supported(app: &AppHandle, cache: &State<'_, EncoderCache>, 
         ]
     };
 
-    let sidecar = app.shell().sidecar("ffmpeg");
-    if sidecar.is_err() {
-        println!("❌ DIAGNOSTIC: Could not find FFmpeg sidecar!");
-        return false;
-    }
-
-    let output = sidecar.unwrap().args(args).output().await;
-    let supported = match output {
+    let str_args: Vec<String> = args.into_iter().map(|s| s.to_string()).collect();
+    let supported = match ffmpeg_runtime::run_ffmpeg_output(app, &str_args).await {
         Ok(o) => o.status.success(),
-        Err(_) => false,
+        Err(e) => {
+            println!("❌ DIAGNOSTIC: FFmpeg runtime unavailable for {}: {}", encoder, e);
+            false
+        }
     };
 
     if supported {
@@ -685,12 +676,12 @@ async fn enhance_video(
     let _ = app.emit("enhance-progress", "Analyzing video stream...");
 
     // 1. Probe Metadata (FPS & Estimating Total Frames)
-    let probe_cmd = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(vec![
-        "-hwaccel", "auto",
-        "-protocol_whitelist", SAFE_PROTOCOLS,
-        "-i", &input
-    ]);
-    let probe_out = probe_cmd.output().await.map_err(|e| e.to_string())?;
+    let probe_args = vec![
+        "-hwaccel".to_string(), "auto".to_string(),
+        "-protocol_whitelist".to_string(), SAFE_PROTOCOLS.to_string(),
+        "-i".to_string(), input.clone(),
+    ];
+    let probe_out = ffmpeg_runtime::run_ffmpeg_output(&app, &probe_args).await?;
     let probe_str = String::from_utf8_lossy(&probe_out.stderr);
     
     let mut fps: f64 = 30.0;
@@ -712,10 +703,13 @@ async fn enhance_video(
 
     // 2. Extract Audio
     let _ = app.emit("enhance-progress", "Separating audio track...");
-    let audio_cmd = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(vec![
-        "-y", "-hwaccel", "auto", "-protocol_whitelist", SAFE_PROTOCOLS, "-i", &input, "-vn", "-c:a", "copy", audio_path.to_str().unwrap()
-    ]);
-    let audio_status = audio_cmd.output().await.map_err(|e| e.to_string())?;
+    let audio_args = vec![
+        "-y".to_string(), "-hwaccel".to_string(), "auto".to_string(),
+        "-protocol_whitelist".to_string(), SAFE_PROTOCOLS.to_string(),
+        "-i".to_string(), input.clone(), "-vn".to_string(),
+        "-c:a".to_string(), "copy".to_string(), audio_path.to_str().unwrap().to_string(),
+    ];
+    let audio_status = ffmpeg_runtime::run_ffmpeg_output(&app, &audio_args).await?;
     let has_audio = audio_path.exists() && audio_status.status.success();
 
     // 3. Extract Frames with Live Progress
@@ -725,12 +719,14 @@ async fn enhance_video(
     let mut vf_chain = "scale=-2:'min(1080,ih)'".to_string();
     if stabilize {
         let trf_path = temp_dir_path.join("transform.trf").to_str().unwrap().replace("\\", "/");
-        let stab_cmd = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(vec![
-            "-y", "-hwaccel", "auto", "-protocol_whitelist", SAFE_PROTOCOLS, "-i", &input,
-            "-vf", &format!("vidstabdetect=stepsize=32:shakiness=10:accuracy=10:result={}", trf_path),
-            "-f", "null", "-"
-        ]);
-        let _ = stab_cmd.output().await;
+        let stab_args = vec![
+            "-y".to_string(), "-hwaccel".to_string(), "auto".to_string(),
+            "-protocol_whitelist".to_string(), SAFE_PROTOCOLS.to_string(),
+            "-i".to_string(), input.clone(),
+            "-vf".to_string(), format!("vidstabdetect=stepsize=32:shakiness=10:accuracy=10:result={}", trf_path),
+            "-f".to_string(), "null".to_string(), "-".to_string(),
+        ];
+        let _ = ffmpeg_runtime::run_ffmpeg_output(&app, &stab_args).await;
         vf_chain = format!("vidstabtransform=input={}:optzoom=1:zoomspeed=0.2:smoothing=10,{}", trf_path, vf_chain);
     }
     if denoise {
@@ -738,25 +734,38 @@ async fn enhance_video(
     }
 
     let (worker_threads, frame_threads) = get_cpu_threads_for_mode("balanced", false);
-    let frames_cmd = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(vec![
-        "-y", "-hwaccel", "auto", "-threads", &worker_threads.to_string(), "-protocol_whitelist", SAFE_PROTOCOLS, "-i", &input, 
-        "-vf", &vf_chain, 
-        "-progress", "pipe:1", 
-        "-vsync", "0", frames_pattern.to_str().unwrap()
-    ]).kill_on_drop(true);
+    let ffmpeg_path = ffmpeg_runtime::resolve_ffmpeg_path(&app).await?;
+    let frame_args = vec![
+        "-y".to_string(), "-hwaccel".to_string(), "auto".to_string(),
+        "-threads".to_string(), worker_threads.to_string(),
+        "-protocol_whitelist".to_string(), SAFE_PROTOCOLS.to_string(),
+        "-i".to_string(), input.clone(),
+        "-vf".to_string(), vf_chain,
+        "-progress".to_string(), "pipe:1".to_string(),
+        "-vsync".to_string(), "0".to_string(),
+        frames_pattern.to_str().unwrap().to_string(),
+    ];
+    let mut frames_cmd = ffmpeg_runtime::build_ffmpeg_tokio_command(&ffmpeg_path, &frame_args, None);
+    frames_cmd.stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::null());
+    let mut frames_child = frames_cmd.spawn().map_err(|e| e.to_string())?;
+    if let Some(pid) = frames_child.id() {
+        apply_process_profile(pid, "balanced");
+    }
 
-    let (mut rx, frames_child) = frames_cmd.spawn().map_err(|e| e.to_string())?;
-    apply_process_profile(frames_child.pid(), "balanced");
-    while let Some(event) = rx.recv().await {
-        if let CommandEvent::Stdout(line_bytes) = event {
-            let line = String::from_utf8_lossy(&line_bytes);
-            if line.contains("frame=") {
-                let frame_str = line.split("frame=").last().unwrap_or("").trim().split(' ').next().unwrap_or("");
-                let _ = app.emit("enhance-progress", format!("Prep: Processing:{}", frame_str));
-            }
+    let (tx, mut rx) = tokio::sync::mpsc::channel::<(bool, Vec<u8>)>(64);
+    if let Some(stdout) = frames_child.stdout.take() {
+        tokio::spawn(ffmpeg_runtime::stream_pipe_lines(stdout, tx, false));
+    } else {
+        drop(tx);
+    }
+    while let Some((_, line_bytes)) = rx.recv().await {
+        let line = String::from_utf8_lossy(&line_bytes);
+        if line.contains("frame=") {
+            let frame_str = line.split("frame=").last().unwrap_or("").trim().split(' ').next().unwrap_or("");
+            let _ = app.emit("enhance-progress", format!("Prep: Processing:{}", frame_str));
         }
     }
-    drop(frames_child);
+    let _ = frames_child.wait().await;
 
     // New: Physical Reconcile - Overwrite estimation with reality
     let actual_files: Vec<_> = std::fs::read_dir(&input_frames_dir)
@@ -934,14 +943,7 @@ async fn probe_media_internal(app: &AppHandle, input: &str) -> Result<MediaProbe
         "-i".to_string(),
         input.to_string(),
     ];
-    let output = app
-        .shell()
-        .sidecar("ffmpeg")
-        .map_err(|e| format!("Failed to find ffmpeg: {}", e))?
-        .args(args)
-        .output()
-        .await
-        .map_err(|e| format!("Failed to run ffmpeg: {}", e))?;
+    let output = ffmpeg_runtime::run_ffmpeg_output(app, &args).await?;
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     Ok(parse_media_probe(&stderr))
@@ -1497,6 +1499,7 @@ async fn compress_image_target_size(
     let target_bytes = (target_size_kb * 1024.0) as u64;
 
     let mut best_q = if is_jpg { max_q } else { min_q };
+    let ffmpeg_path = ffmpeg_runtime::resolve_ffmpeg_path(&app).await?;
     let mut best_size_diff = u64::MAX;
     let mut last_encoded_q: Option<f32> = None;
 
@@ -1509,15 +1512,13 @@ async fn compress_image_target_size(
         last_encoded_q = Some(q_val);
 
         let args = build_image_quality_args(worker_threads, &input, &output, &width, &height, q_val);
-        let (mut rx, child) = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(args).kill_on_drop(true).spawn().map_err(|e| e.to_string())?;
-        apply_process_profile(child.pid(), p_mode);
-        let mut success = true;
-        while let Some(event) = rx.recv().await {
-            if let CommandEvent::Terminated(payload) = event {
-                success = payload.code == Some(0);
-            }
+        let mut cmd = ffmpeg_runtime::build_ffmpeg_tokio_command(&ffmpeg_path, &args, None);
+        cmd.stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null());
+        let mut child = cmd.spawn().map_err(|e| e.to_string())?;
+        if let Some(pid) = child.id() {
+            apply_process_profile(pid, p_mode);
         }
-        drop(child);
+        let success = child.wait().await.map(|s| s.success()).unwrap_or(false);
 
         if !success {
             continue;
@@ -1546,10 +1547,13 @@ async fn compress_image_target_size(
     let final_q = best_q.floor();
     if last_encoded_q != Some(final_q) {
         let args = build_image_quality_args(worker_threads, &input, &output, &width, &height, final_q);
-        let (mut rx, child) = app.shell().sidecar("ffmpeg").map_err(|e| e.to_string())?.args(args).kill_on_drop(true).spawn().map_err(|e| e.to_string())?;
-        apply_process_profile(child.pid(), p_mode);
-        while let Some(_) = rx.recv().await {}
-        drop(child);
+        let mut cmd = ffmpeg_runtime::build_ffmpeg_tokio_command(&ffmpeg_path, &args, None);
+        cmd.stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null());
+        let mut child = cmd.spawn().map_err(|e| e.to_string())?;
+        if let Some(pid) = child.id() {
+            apply_process_profile(pid, p_mode);
+        }
+        let _ = child.wait().await;
     }
 
     let final_size = std::fs::metadata(&output).map(|m| m.len()).unwrap_or(0);
@@ -1635,7 +1639,10 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .manage(EncoderCache(Mutex::new(HashMap::new())))
+        .manage(ffmpeg_runtime::FfmpegRuntimeState::new())
         .invoke_handler(tauri::generate_handler![
+            ffmpeg_runtime::check_ffmpeg_runtime,
+            ffmpeg_runtime::ensure_ffmpeg_runtime,
             detect_hardware_tier,
             compress_video, 
             compress_image, 
