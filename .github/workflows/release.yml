@@ -60,7 +60,8 @@ jobs:
             ---
 
             ### 💡 Hybrid Mode & Upgrade Tip
-            - **Upgrading from `v0.1.60`:** Triggers a quick one-time FFmpeg runtime check/download into local cache; future updates (`v0.1.62+`) stay tiny and skip re-downloading FFmpeg automatically.
+            - **Clean Windows Shortcut Naming:** Fixed the Windows Desktop & Start Menu shortcut path (`Compress IO.lnk`) so `/` in the display name no longer splits into a `Compress I` folder containing `O.lnk`, and automatically removes any legacy `Compress I` shortcut folder during upgrade or uninstall.
+            - **Upgrading from `v0.1.60`:** Triggers a quick one-time FFmpeg runtime check/download into local cache; future updates (`v0.1.63+`) stay tiny and skip re-downloading FFmpeg automatically.
             - **Keep `HYBRID ENGINE` ON (Default)** for fast 4K/HD compression (`NVENC` / `QuickSync` / `AMD VCN` / `VideoToolbox` / `VAAPI` + Dual-Engine batching), or toggle **OFF (`Tuned CPU`)** for exact **Target Size** precision.
 
             ---
@@ -189,7 +190,8 @@ jobs:
             ---
 
             ### 💡 Hybrid Mode & Upgrade Tip
-            - **Upgrading from `v0.1.60`:** Triggers a quick one-time FFmpeg runtime check/download into local cache; future updates (`v0.1.62+`) stay tiny and skip re-downloading FFmpeg automatically.
+            - **Clean Windows Shortcut Naming:** Fixed the Windows Desktop & Start Menu shortcut path (`Compress IO.lnk`) so `/` in the display name no longer splits into a `Compress I` folder containing `O.lnk`, and automatically removes any legacy `Compress I` shortcut folder during upgrade or uninstall.
+            - **Upgrading from `v0.1.60`:** Triggers a quick one-time FFmpeg runtime check/download into local cache; future updates (`v0.1.63+`) stay tiny and skip re-downloading FFmpeg automatically.
             - **Keep `HYBRID ENGINE` ON (Default)** for fast 4K/HD compression (`NVENC` / `QuickSync` / `AMD VCN` / `VideoToolbox` / `VAAPI` + Dual-Engine batching), or toggle **OFF (`Tuned CPU`)** for exact **Target Size** precision.
 
             ---

@@ -18,7 +18,7 @@ import NumberFlow from "@number-flow/react";
 import { useUpdater } from "./hooks/useUpdater";
 import { useFfmpegRuntime } from "./hooks/useFfmpegRuntime";
 
-const FALLBACK_APP_VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "0.1.61";
+const FALLBACK_APP_VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "0.1.62";
 
 export default function App() {
   const [showIntro, setShowIntro] = useState(true);
