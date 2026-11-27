@@ -49,6 +49,7 @@ jobs:
             ---
 
             ### ✨ What's New
+            - **Native Windows ARM64 Support:** Added native `aarch64-pc-windows-msvc` desktop + installer builds paired with a pinned SHA-256 `winarm64` FFmpeg runtime alongside Linux ARM64 and Apple Silicon.
             - **Custom Frameless Windows Installer:** Replaced the stock NSIS wizard with a bespoke botanical-sage WebView2 setup window featuring custom install location selection, live disk space checks, Explorer right-click integration (`Compress with Compress I/O`), atomic rollback, UAC elevation, full Uninstall cleanup, and headless `/S` + `/P` update support.
             - **Decoupled SHA-256 FFmpeg Runtime Cache:** Moved FFmpeg out of app bundles into a permanent **SHA-256 verified** local cache (`EngineSetupModal`) downloaded once on first run — shrinking the Windows installer from ~51 MiB down to ~6.5 MiB and reducing macOS & Linux update sizes too.
             - **VS Code-Style Silent Background Updater:** Pre-downloads and verifies updates quietly in the background with a non-intrusive `Update` header pill (`DashboardHeader`) and popup-free Windows installation (`installMode: quiet`).
@@ -59,7 +60,7 @@ jobs:
             ---
 
             ### 💡 Hybrid Mode & Upgrade Tip
-            - **Upgrading from `v0.1.60`:** Triggers a quick one-time FFmpeg runtime check/download into local cache; future updates (`v0.1.61+`) stay tiny and skip re-downloading FFmpeg automatically.
+            - **Upgrading from `v0.1.60`:** Triggers a quick one-time FFmpeg runtime check/download into local cache; future updates (`v0.1.62+`) stay tiny and skip re-downloading FFmpeg automatically.
             - **Keep `HYBRID ENGINE` ON (Default)** for fast 4K/HD compression (`NVENC` / `QuickSync` / `AMD VCN` / `VideoToolbox` / `VAAPI` + Dual-Engine batching), or toggle **OFF (`Tuned CPU`)** for exact **Target Size** precision.
 
             ---
@@ -106,6 +107,9 @@ jobs:
       matrix:
         include:
           - platform: windows-latest
+            args: '--features cpu --ignore-version-mismatches'
+            tauri_script: 'node scripts/build-windows-custom.mjs'
+          - platform: windows-11-arm
             args: '--features cpu --ignore-version-mismatches'
             tauri_script: 'node scripts/build-windows-custom.mjs'
           - platform: macos-15
@@ -174,6 +178,7 @@ jobs:
             ---
 
             ### ✨ What's New
+            - **Native Windows ARM64 Support:** Added native `aarch64-pc-windows-msvc` desktop + installer builds paired with a pinned SHA-256 `winarm64` FFmpeg runtime alongside Linux ARM64 and Apple Silicon.
             - **Custom Frameless Windows Installer:** Replaced the stock NSIS wizard with a bespoke botanical-sage WebView2 setup window featuring custom install location selection, live disk space checks, Explorer right-click integration (`Compress with Compress I/O`), atomic rollback, UAC elevation, full Uninstall cleanup, and headless `/S` + `/P` update support.
             - **Decoupled SHA-256 FFmpeg Runtime Cache:** Moved FFmpeg out of app bundles into a permanent **SHA-256 verified** local cache (`EngineSetupModal`) downloaded once on first run — shrinking the Windows installer from ~51 MiB down to ~6.5 MiB and reducing macOS & Linux update sizes too.
             - **VS Code-Style Silent Background Updater:** Pre-downloads and verifies updates quietly in the background with a non-intrusive `Update` header pill (`DashboardHeader`) and popup-free Windows installation (`installMode: quiet`).
@@ -184,7 +189,7 @@ jobs:
             ---
 
             ### 💡 Hybrid Mode & Upgrade Tip
-            - **Upgrading from `v0.1.60`:** Triggers a quick one-time FFmpeg runtime check/download into local cache; future updates (`v0.1.61+`) stay tiny and skip re-downloading FFmpeg automatically.
+            - **Upgrading from `v0.1.60`:** Triggers a quick one-time FFmpeg runtime check/download into local cache; future updates (`v0.1.62+`) stay tiny and skip re-downloading FFmpeg automatically.
             - **Keep `HYBRID ENGINE` ON (Default)** for fast 4K/HD compression (`NVENC` / `QuickSync` / `AMD VCN` / `VideoToolbox` / `VAAPI` + Dual-Engine batching), or toggle **OFF (`Tuned CPU`)** for exact **Target Size** precision.
 
             ---
@@ -222,7 +227,7 @@ jobs:
 
       # 🛡️ SECURITY: Cryptographic Sigstore provenance attestation for compiled installer bundles
       - name: Attest Build Provenance (Windows)
-        if: matrix.platform == 'windows-latest'
+        if: startsWith(matrix.platform, 'windows')
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: |

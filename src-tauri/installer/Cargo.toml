@@ -2,7 +2,7 @@
 
 [package]
 name = "compress-io-setup"
-version = "0.1.60"
+version = "0.1.61"
 description = "Compress I/O Windows Custom Installer"
 edition = "2021"
 build = "build.rs"

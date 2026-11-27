@@ -3,39 +3,49 @@
  * Used when the app launches cleanly from an installer build or when no GitHub
  * Markdown release body was cached by the in-app updater.
  */
+const STUDIO_ARCH_HIGHLIGHTS = [
+  {
+    icon: 'download',
+    title: 'Custom Frameless Windows Installer',
+    desc: 'Next-gen WebView2 setup with custom folder picker, live disk space check, atomic rollback, UAC elevation, and clean Uninstall.',
+  },
+  {
+    icon: 'cpu',
+    title: 'Native ARM64 + Multi-Platform Engine',
+    desc: 'Native builds across Windows (x64 & ARM64), macOS Apple Silicon, and Linux (x64 & ARM64) with NVIDIA NVENC & ARM64 NEON support.',
+  },
+  {
+    icon: 'zap',
+    title: 'Decoupled SHA-256 FFmpeg Cache',
+    desc: 'FFmpeg downloads once into a permanent SHA-256-verified cache — cutting installers and updates by ~87%.',
+  },
+  {
+    icon: 'sparkles',
+    title: 'Quiet Auto-Updater & Explorer Integration',
+    desc: 'Silent background staging with header pill, post-install What\'s New notes, and Windows Explorer right-click queuing.',
+  },
+];
+
 export const RELEASE_NOTES_BY_VERSION = {
+  '0.1.61': {
+    badge: 'Release v0.1.61',
+    headlineTop: 'Next-Gen',
+    headlineAccent: 'Studio Architecture.',
+    subtitle:
+      'Engineered for native ARM64 & x64 speed, ~87% smaller updates, and a custom zero-bloat Windows setup.',
+    highlights: STUDIO_ARCH_HIGHLIGHTS,
+  },
   '0.1.60': {
     badge: 'Release v0.1.60',
     headlineTop: 'Next-Gen',
     headlineAccent: 'Studio Architecture.',
     subtitle:
       'Engineered for fast offline setup, lightweight silent updates, and seamless Windows shell integration.',
-    highlights: [
-      {
-        icon: 'download',
-        title: 'Custom Frameless Windows Installer',
-        desc: 'Next-gen WebView2 setup with custom folder picker, live disk space check, atomic rollback, UAC elevation, and clean Uninstall.',
-      },
-      {
-        icon: 'zap',
-        title: 'Decoupled SHA-256 FFmpeg Cache',
-        desc: 'FFmpeg downloads once into a permanent SHA-256-verified cache — cutting installers and updates by ~87%.',
-      },
-      {
-        icon: 'sparkles',
-        title: 'Quiet Background Auto-Updater',
-        desc: 'Stages verified updates silently in the background with a header status pill, release notes preview, and popup-free install.',
-      },
-      {
-        icon: 'folder',
-        title: 'Explorer Context Menu',
-        desc: 'Right-click supported media files in Windows Explorer and choose "Compress with Compress I/O" to queue them immediately.',
-      },
-    ],
+    highlights: STUDIO_ARCH_HIGHLIGHTS,
   },
 };
 
-const LATEST_DEFINED_VERSION = '0.1.60';
+const LATEST_DEFINED_VERSION = '0.1.61';
 
 /**
  * Returns release notes metadata for the requested version, falling back cleanly
