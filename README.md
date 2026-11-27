@@ -37,7 +37,7 @@ Most media tools fall into two traps: they upload your private files to third-pa
 
 <br />
 
-## 🚀 Core Capabilities (`v0.1.60`)
+## 🚀 Core Capabilities (`v0.1.61`)
 
 <table width="100%">
   <tr>
@@ -115,7 +115,7 @@ flowchart LR
 > ### 🔐 Verify Any Binary in Seconds
 > Confirm that your downloaded installer was compiled directly by GitHub Actions without tampering:
 > ```bash
-> gh attestation verify compress-io_0.1.60_x64-setup.exe -R akshatrawat095/compress-io
+> gh attestation verify compress-io_0.1.61_x64-setup.exe -R akshatrawat095/compress-io
 > ```
 
 ### 📋 Security & Compliance Matrix
@@ -135,7 +135,7 @@ flowchart LR
 
 <div align="center">
   <a href="https://github.com/akshatrawat095/compress-io/releases/latest">
-    <img src="https://img.shields.io/badge/Download_Windows_(x64)-424F3C?style=for-the-badge&logo=windows&logoColor=F2F0EB" />
+    <img src="https://img.shields.io/badge/Download_Windows_(x64_%2F_ARM64)-424F3C?style=for-the-badge&logo=windows&logoColor=F2F0EB" />
   </a>
   &nbsp;&nbsp;
   <a href="https://github.com/akshatrawat095/compress-io/releases/latest">
@@ -149,7 +149,7 @@ flowchart LR
 
 1. Go to the [**Latest Release**](https://github.com/akshatrawat095/compress-io/releases/latest).
 2. Download the installer for your system:
-   - **Windows (x64):** `compress-io_<version>_x64-setup.exe`
+   - **Windows (`x64` / `ARM64`):** `compress-io_<version>_*-setup.exe`
    - **macOS (Apple Silicon `arm64`):** `compress-io_<version>_aarch64.dmg`
    - **Linux (`amd64` / `arm64`):** `.deb` or `.AppImage`
 3. Launch and drop your files in.

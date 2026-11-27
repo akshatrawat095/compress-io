@@ -34,6 +34,18 @@ pub fn current_runtime_spec() -> &'static FfmpegRuntimeSpec {
     }
 }
 
+#[cfg(all(target_os = "windows", target_arch = "aarch64"))]
+pub fn current_runtime_spec() -> &'static FfmpegRuntimeSpec {
+    &FfmpegRuntimeSpec {
+        runtime_id: "ffmpeg-N-129308-g17de9f8597-winarm64-gpl",
+        url: "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-11-26-12-56/ffmpeg-N-129308-g17de9f8597-winarm64-gpl.zip",
+        archive_sha256: "3ec20e39c236ce6b564d5e7a9e319748c4e2065982b436e5d009ebd7cb09b57d",
+        archive_kind: "zip",
+        bin_name: "ffmpeg.exe",
+        target_triple: "aarch64-pc-windows-msvc",
+    }
+}
+
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 pub fn current_runtime_spec() -> &'static FfmpegRuntimeSpec {
     &FfmpegRuntimeSpec {
@@ -84,6 +96,7 @@ pub fn current_runtime_spec() -> &'static FfmpegRuntimeSpec {
 
 #[cfg(not(any(
     all(target_os = "windows", target_arch = "x86_64"),
+    all(target_os = "windows", target_arch = "aarch64"),
     all(target_os = "macos", target_arch = "aarch64"),
     all(target_os = "macos", target_arch = "x86_64"),
     all(target_os = "linux", target_arch = "x86_64"),

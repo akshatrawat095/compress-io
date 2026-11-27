@@ -193,7 +193,7 @@ dependencies = [
 
 [[package]]
 name = "compress-io-setup"
-version = "0.1.60"
+version = "0.1.61"
 dependencies = [
  "brotli",
  "dirs",
