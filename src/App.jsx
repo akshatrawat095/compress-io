@@ -32,15 +32,15 @@ export default function App() {
   const [hwInfo, setHwInfo] = useState({ tier: "cpu", encoder: "libx265", label: "Checking...", can_dual_engine: false });
   const [dimSettings, setDimSettings] = useState({ width: "", height: "" });
 
-  const [aiScale] = useState("4"); 
-  const [aiFormat] = useState("webp"); 
-  const [faceRestore] = useState(false); 
-  const [aiVideoModel] = useState("anime");
-  const [aiFps] = useState("0");
-  const [denoise] = useState(false);
-  const [stabilize] = useState(false);
-  const [hyperDetail] = useState(false);
-  const [tileSize] = useState("0");
+  const [aiScale, setAiScale] = useState("4"); 
+  const [aiFormat, setAiFormat] = useState("webp"); 
+  const [faceRestore, setFaceRestore] = useState(false); 
+  const [aiVideoModel, setAiVideoModel] = useState("anime");
+  const [aiFps, setAiFps] = useState("0");
+  const [denoise, setDenoise] = useState(false);
+  const [stabilize, setStabilize] = useState(false);
+  const [hyperDetail, setHyperDetail] = useState(false);
+  const [tileSize, setTileSize] = useState("0");
 
   const [targetSizeEnabled, setTargetSizeEnabled] = useState(false);
   const [targetSize, setTargetSize] = useState("");

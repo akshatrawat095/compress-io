@@ -44,16 +44,16 @@ export function useFfmpegRuntime() {
     let cancelled = false;
 
     const init = async () => {
-      unlisten = await listen('ffmpeg-setup-progress', (event) => {
-        if (cancelled) return;
-        const payload = event.payload || {};
-        if (payload.stage) setStage(payload.stage);
-        if (typeof payload.percent === 'number') setProgress(payload.percent);
-        if (typeof payload.downloadedBytes === 'number') setDownloadedBytes(payload.downloadedBytes);
-        if (typeof payload.totalBytes === 'number') setTotalBytes(payload.totalBytes);
-      });
-
       try {
+        unlisten = await listen('ffmpeg-setup-progress', (event) => {
+          if (cancelled) return;
+          const payload = event.payload || {};
+          if (payload.stage) setStage(payload.stage);
+          if (typeof payload.percent === 'number') setProgress(payload.percent);
+          if (typeof payload.downloadedBytes === 'number') setDownloadedBytes(payload.downloadedBytes);
+          if (typeof payload.totalBytes === 'number') setTotalBytes(payload.totalBytes);
+        });
+
         const res = await invoke('check_ffmpeg_runtime');
         if (cancelled) return;
         if (res?.ready) {
