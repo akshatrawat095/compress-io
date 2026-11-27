@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { motion, AnimatePresence, useMotionTemplate, useMotionValue, useSpring } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { buildMarkdownComponents } from './markdownComponents';
 
 export default function UpdaterModal({ isDarkMode, updater }) {
   const cardRef = useRef(null);
@@ -28,21 +29,10 @@ export default function UpdaterModal({ isDarkMode, updater }) {
     visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: "easeOut" } }
   }), []);
 
-  const mdComponents = React.useMemo(() => ({
-    h2: ({node, ...props}) => <motion.h2 variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true}} className={`text-sm font-black mb-2 tracking-wide ${isDarkMode ? 'text-[#F2F0EB]' : 'text-[#232921]'}`} {...props} />,
-    h3: ({node, ...props}) => <motion.h3 variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true}} className={`text-xs font-bold uppercase tracking-wider mt-4 mb-2 ${isDarkMode ? 'text-studio-moss' : 'text-studio-forest'}`} {...props} />,
-    p: ({node, ...props}) => <motion.p variants={staggerVariants} initial="hidden" whileInView="visible" viewport={{once:true}} className="mb-2 leading-relaxed opacity-90 text-xs" {...props} />,
-    ul: ({node, ...props}) => <ul className="list-disc list-inside space-y-1.5 my-2 pl-1 leading-relaxed text-xs opacity-90" {...props} />,
-    li: ({node, ...props}) => <li className="leading-relaxed" {...props} />,
-    code: ({node, inline, ...props}) => inline ? <code className={`px-1.5 py-0.5 rounded font-mono text-[11px] ${isDarkMode ? 'bg-white/10 text-studio-moss' : 'bg-studio-sage/15 text-studio-forest'}`} {...props} /> : <code {...props} />,
-    pre: ({node, ...props}) => <pre className={`p-3 my-2.5 rounded-lg text-[11px] font-mono overflow-x-auto border ${isDarkMode ? 'bg-black/40 border-white/5 text-[#E5E2D9]' : 'bg-[#EFECE4] border-[#DFDCD2] text-[#232921]'}`} {...props} />,
-    table: ({node, ...props}) => <div className={`overflow-x-auto my-3 rounded-lg border ${isDarkMode ? 'border-white/10' : 'border-[#DFDCD2]'}`}><table className="w-full text-left border-collapse text-[11px]" {...props} /></div>,
-    th: ({node, ...props}) => <th className={`border-b py-2 px-3 font-bold ${isDarkMode ? 'border-white/10 bg-white/5 text-[#F2F0EB]' : 'border-[#DFDCD2] bg-[#EAE7DF] text-[#232921]'}`} {...props} />,
-    tr: ({node, ...props}) => <tr className={`border-b last:border-b-0 ${isDarkMode ? 'border-white/5 hover:bg-white/5' : 'border-[#EAE7DF] hover:bg-[#EFECE4]'} transition-colors`} {...props} />,
-    td: ({node, ...props}) => <td className="py-2 px-3 opacity-85" {...props} />,
-    hr: ({node, ...props}) => <hr className={`my-3 ${isDarkMode ? 'border-white/10' : 'border-[#DFDCD2]'}`} {...props} />,
-    blockquote: ({node, ...props}) => <blockquote className={`border-l-2 border-studio-sage pl-3 py-1.5 my-2 text-xs italic rounded-r-lg ${isDarkMode ? 'bg-studio-sage/10 text-[#D7DDD3]' : 'bg-studio-sage/10 text-[#495046]'}`} {...props} />,
-  }), [isDarkMode, staggerVariants]);
+  const mdComponents = React.useMemo(
+    () => buildMarkdownComponents(isDarkMode, staggerVariants),
+    [isDarkMode, staggerVariants],
+  );
 
   const { updateInfo, status, progress, errorMsg, isModalOpen, closeModal, retryDownload, installAndRestart } = updater || {};
   const isBusy = status === 'downloading' || status === 'installing';

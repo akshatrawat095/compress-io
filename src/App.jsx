@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { getVersion } from "@tauri-apps/api/app";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { motion, AnimatePresence, Reorder, useMotionValue, useSpring, useTransform, useAnimate, useMotionTemplate } from "framer-motion";
 import { listen } from "@tauri-apps/api/event"; 
@@ -11,10 +12,13 @@ import DashboardHeader from "./components/DashboardHeader";
 import SettingsDeck from "./components/SettingsDeck";
 import UpdaterModal from "./components/UpdaterModal";
 import EngineSetupModal from "./components/EngineSetupModal";
+import ReleaseNotesModal from "./components/ReleaseNotesModal";
 import ErrorToast from "./components/ErrorToast";
 import NumberFlow from "@number-flow/react";
 import { useUpdater } from "./hooks/useUpdater";
 import { useFfmpegRuntime } from "./hooks/useFfmpegRuntime";
+
+const FALLBACK_APP_VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "0.1.60";
 
 export default function App() {
   const [showIntro, setShowIntro] = useState(true);
@@ -22,6 +26,10 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const updater = useUpdater();
   const ffmpegRuntime = useFfmpegRuntime();
+  const [appVersion, setAppVersion] = useState(FALLBACK_APP_VERSION);
+  const [showReleaseNotes, setShowReleaseNotes] = useState(false);
+  const [releaseMarkdown, setReleaseMarkdown] = useState("");
+  const releaseNotesCheckedVersionRef = useRef(null);
   
   const [fileQueue, setFileQueue] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(null);
@@ -68,6 +76,54 @@ export default function App() {
   const enhanceStartTimeRef = useRef(0);
   const totalPrepFrames = useRef(0);
   const isStoppingRef = useRef(false);
+
+  useEffect(() => {
+    getVersion()
+      .then((ver) => {
+        if (ver) setAppVersion(String(ver).replace(/^v/i, ""));
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (showIntro || !ffmpegRuntime.isReady || updater.isModalOpen) return;
+    if (releaseNotesCheckedVersionRef.current === appVersion) return;
+    releaseNotesCheckedVersionRef.current = appVersion;
+
+    try {
+      const notesStorageKey = `compress_io_release_notes_${appVersion}`;
+      const pendingRaw = localStorage.getItem("compress_io_pending_release_notes");
+      if (pendingRaw) {
+        const pending = JSON.parse(pendingRaw);
+        if (pending?.version === appVersion && pending.body) {
+          localStorage.setItem(notesStorageKey, pending.body);
+          setReleaseMarkdown(pending.body);
+        }
+        localStorage.removeItem("compress_io_pending_release_notes");
+      } else {
+        const cachedNotes = localStorage.getItem(notesStorageKey);
+        if (cachedNotes) {
+          setReleaseMarkdown(cachedNotes);
+        }
+      }
+
+      const lastSeen = localStorage.getItem("compress_io_last_seen_version");
+      if (lastSeen !== appVersion) {
+        setShowReleaseNotes(true);
+      }
+    } catch {
+      // Ignore storage access failures cleanly
+    }
+  }, [appVersion, showIntro, ffmpegRuntime.isReady, updater.isModalOpen]);
+
+  const dismissReleaseNotes = useCallback(() => {
+    try {
+      localStorage.setItem("compress_io_last_seen_version", appVersion);
+    } catch {
+      // Ignore storage write errors
+    }
+    setShowReleaseNotes(false);
+  }, [appVersion]);
 
   useEffect(() => {
     if (!ffmpegRuntime.isReady) return;
@@ -749,7 +805,16 @@ export default function App() {
           }}
           className="flex-none mb-2"
         >
-          <DashboardHeader appMode={appMode} isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isProcessing={isProcessing} updater={updater} stats={{ compressedSize: "0", originalSize: "0", totalFiles: fileQueue.length }} />
+          <DashboardHeader
+            appMode={appMode}
+            isDarkMode={isDarkMode}
+            setIsDarkMode={setIsDarkMode}
+            isProcessing={isProcessing}
+            updater={updater}
+            appVersion={appVersion}
+            onOpenReleaseNotes={() => setShowReleaseNotes(true)}
+            stats={{ compressedSize: "0", originalSize: "0", totalFiles: fileQueue.length }}
+          />
         </motion.div>
 
 
@@ -1121,6 +1186,13 @@ export default function App() {
       </AnimatePresence>
 
       <ErrorToast error={errorToast} isDarkMode={isDarkMode} onDismiss={() => setErrorToast(null)} />
+      <ReleaseNotesModal
+        isOpen={showReleaseNotes}
+        version={appVersion}
+        markdownBody={releaseMarkdown}
+        onDismiss={dismissReleaseNotes}
+        isDarkMode={isDarkMode}
+      />
       <EngineSetupModal isDarkMode={isDarkMode} runtime={ffmpegRuntime} />
       <UpdaterModal isDarkMode={isDarkMode} updater={updater} />
     </div>

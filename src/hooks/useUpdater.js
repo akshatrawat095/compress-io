@@ -96,6 +96,17 @@ export function useUpdater() {
         await downloadUpdate(update);
       }
       isConsumedRef.current = true;
+      try {
+        localStorage.setItem(
+          'compress_io_pending_release_notes',
+          JSON.stringify({
+            version: String(update.version || '').replace(/^v/i, ''),
+            body: update.body || '',
+          }),
+        );
+      } catch {
+        // Ignore storage errors if WebView storage is restricted
+      }
       await update.install();
       // On Windows, install() exits the process and launches the quiet installer.
       // On macOS/Linux, relaunch manually so the updated bundle takes effect.
@@ -105,6 +116,11 @@ export function useUpdater() {
     } catch (err) {
       console.error('Failed to install update:', err);
       isConsumedRef.current = false;
+      try {
+        localStorage.removeItem('compress_io_pending_release_notes');
+      } catch {
+        // Ignore storage cleanup errors
+      }
       setErrorMsg(String(err));
       setStatus('error');
     }
